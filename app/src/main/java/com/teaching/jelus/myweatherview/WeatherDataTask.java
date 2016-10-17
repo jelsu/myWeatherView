@@ -15,6 +15,7 @@ public class WeatherDataTask extends AsyncTask<String, Void, String> {
     private HttpURLConnection urlConnection = null;
     private BufferedReader reader = null;
     private String result = "no data";
+    private DatabaseHelper mDatabaseHelper;
 
     @Override
     protected String doInBackground(String... strings) {
@@ -43,18 +44,23 @@ public class WeatherDataTask extends AsyncTask<String, Void, String> {
         try {
             JSONObject jsonObject = new JSONObject(JSONdata);
             JSONArray weatherArray = jsonObject.getJSONArray("weather");
-            JSONObject weatherData = (JSONObject) weatherArray.get(0);
-            String sky = weatherData.getString("description");
+            JSONObject allWeatherData = (JSONObject) weatherArray.get(0);
+            String currentWeather = allWeatherData.getString("description");
             JSONObject main = jsonObject.getJSONObject("main");
             String cityName = jsonObject.getString("name");
-            double temperature = main.getDouble("temp");
-            MainActivity.showCityTextView.setText("City: " + cityName);
+            int temperature = (int) Math.round(main.getDouble("temp"));
+            mDatabaseHelper = new DatabaseHelper(MyApp.getAppContext());
+            mDatabaseHelper.addWeatherData(cityName, temperature, currentWeather);
+            WeatherData weatherData = mDatabaseHelper.getWeatherData();
+            MainActivity.showCityTextView.setText("City: " + weatherData.getCity());
             MainActivity.temperatureTextView.setText("Temperature: "
-                    + String.format("%.0f", temperature)
+                    + String.valueOf(weatherData.getTemperature())
                     + "°C");
-            MainActivity.weatherTextView.setText("Weather: " + sky);
+            MainActivity.weatherTextView.setText("Weather: " + weatherData.getWeather());
+            mDatabaseHelper.deleteAll();
         } catch (Exception e){
             e.printStackTrace();
+            mDatabaseHelper.deleteAll();
         }
     }
 }
