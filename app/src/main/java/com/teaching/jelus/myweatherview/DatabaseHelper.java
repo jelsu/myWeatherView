@@ -15,6 +15,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
     private static final String CITY_COLUMN = "city";
     private static final String TEMPERATURE_COLUMN = "temperature";
     private static final String WEATHER_COLUMN = "weather";
+    private static final String ICON_CODE_COLUMN = "icon_number";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -26,7 +27,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
                 + TABLE_NAME + " (" + BaseColumns._ID
                 + " integer primary key autoincrement, " + CITY_COLUMN
                 + " text not null, " + TEMPERATURE_COLUMN + " integer not null, " + WEATHER_COLUMN
-                + " text not null);";
+                + " text not null," + ICON_CODE_COLUMN + " text not null);";
         db.execSQL(CREATE_TABLE);
     }
 
@@ -37,12 +38,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
         onCreate(db);
     }
 
-    public void addWeatherData(String cityName, int temperature, String weather){
+    public void addWeatherData(String cityName, int temperature, String weather, String iconCode){
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(CITY_COLUMN, cityName);
         values.put(TEMPERATURE_COLUMN, temperature);
         values.put(WEATHER_COLUMN, weather);
+        values.put(ICON_CODE_COLUMN, iconCode);
         db.insert(TABLE_NAME, null, values);
         db.close();
     }
@@ -52,14 +54,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
         Cursor cursor = db.query(DatabaseHelper.TABLE_NAME,
                 new String[]{DatabaseHelper.CITY_COLUMN,
                         DatabaseHelper.TEMPERATURE_COLUMN,
-                        DatabaseHelper.WEATHER_COLUMN},
+                        DatabaseHelper.WEATHER_COLUMN,
+                        DatabaseHelper.ICON_CODE_COLUMN},
                 null, null, null, null, null);
         cursor.moveToFirst();
         String cityDB = cursor.getString(cursor.getColumnIndex(DatabaseHelper.CITY_COLUMN));
         int temperature = cursor.getInt(cursor.getColumnIndex(DatabaseHelper.TEMPERATURE_COLUMN));
         String weather = cursor.getString(cursor.getColumnIndex(DatabaseHelper.WEATHER_COLUMN));
+        String iconCode = cursor.getString(cursor.getColumnIndex(DatabaseHelper.ICON_CODE_COLUMN));
         cursor.close();
-        WeatherData weatherData = new WeatherData(cityDB, temperature, weather);
+        WeatherData weatherData = new WeatherData(cityDB, temperature, weather, iconCode);
         return weatherData;
     }
 

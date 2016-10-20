@@ -1,6 +1,10 @@
 package com.teaching.jelus.myweatherview;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -41,26 +45,49 @@ public class WeatherDataTask extends AsyncTask<String, Void, String> {
     @Override
     protected void onPostExecute(String JSONdata) {
         super.onPostExecute(JSONdata);
-        try {
-            JSONObject jsonObject = new JSONObject(JSONdata);
-            JSONArray weatherArray = jsonObject.getJSONArray("weather");
-            JSONObject allWeatherData = (JSONObject) weatherArray.get(0);
-            String currentWeather = allWeatherData.getString("description");
-            JSONObject main = jsonObject.getJSONObject("main");
-            String cityName = jsonObject.getString("name");
-            int temperature = (int) Math.round(main.getDouble("temp"));
-            mDatabaseHelper = new DatabaseHelper(MyApp.getAppContext());
-            mDatabaseHelper.addWeatherData(cityName, temperature, currentWeather);
+        mDatabaseHelper = new DatabaseHelper(MyApp.getAppContext());
+        if (isConnect()) {
+            try {
+                JSONObject jsonObject = new JSONObject(JSONdata);
+                JSONArray weatherArray = jsonObject.getJSONArray("weather");
+                JSONObject allWeatherData = (JSONObject) weatherArray.get(0);
+                String currentWeather = allWeatherData.getString("description");
+                String iconCode = allWeatherData.getString("icon");
+                JSONObject main = jsonObject.getJSONObject("main");
+                String cityName = jsonObject.getString("name");
+                int temperature = (int) Math.round(main.getDouble("temp"));
+                mDatabaseHelper.deleteAll();
+                mDatabaseHelper.addWeatherData(cityName, temperature, currentWeather, iconCode);
+                WeatherData weatherData = mDatabaseHelper.getWeatherData();
+                MainActivity.showCityTextView.setText(weatherData.getCity());
+                MainActivity.temperatureTextView.setText(String.valueOf(weatherData.getTemperature())
+                        + "°C");
+                MainActivity.weatherTextView.setText(weatherData.getWeather());
+                new DownloadImageTask().execute(weatherData.getIconCode());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else{
             WeatherData weatherData = mDatabaseHelper.getWeatherData();
-            MainActivity.showCityTextView.setText("City: " + weatherData.getCity());
-            MainActivity.temperatureTextView.setText("Temperature: "
-                    + String.valueOf(weatherData.getTemperature())
+            MainActivity.showCityTextView.setText(weatherData.getCity());
+            MainActivity.temperatureTextView.setText(String.valueOf(weatherData.getTemperature())
                     + "°C");
-            MainActivity.weatherTextView.setText("Weather: " + weatherData.getWeather());
-            mDatabaseHelper.deleteAll();
-        } catch (Exception e){
-            e.printStackTrace();
-            mDatabaseHelper.deleteAll();
+            MainActivity.weatherTextView.setText(weatherData.getWeather());
+            new DownloadImageTask().execute(weatherData.getIconCode());
         }
+        Toast.makeText(
+                MyApp.getAppContext(),
+                "Connect: " + isConnect(),
+                Toast.LENGTH_SHORT)
+                .show();
+    }
+
+    public boolean isConnect(){
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) MyApp
+                        .getAppContext()
+                        .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnectedOrConnecting();
     }
 }

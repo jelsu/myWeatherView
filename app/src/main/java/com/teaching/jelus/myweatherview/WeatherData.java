@@ -4,11 +4,13 @@ public class WeatherData {
     private String city;
     private int temperature;
     private String weather;
+    private String iconCode;
 
-    public WeatherData(String city, int temperature, String weather) {
-        this.city = city;
-        this.temperature = temperature;
+    public WeatherData(String weather, int temperature, String city, String iconCode) {
         this.weather = weather;
+        this.temperature = temperature;
+        this.city = city;
+        this.iconCode = iconCode;
     }
 
     public String getCity() {
@@ -33,5 +35,13 @@ public class WeatherData {
 
     public void setWeather(String weather) {
         this.weather = weather;
+    }
+
+    public String getIconCode() {
+        return iconCode;
+    }
+
+    public void setIconCode(String iconCode) {
+        this.iconCode = iconCode;
     }
 }
