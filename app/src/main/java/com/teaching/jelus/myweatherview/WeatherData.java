@@ -1,24 +1,24 @@
 package com.teaching.jelus.myweatherview;
 
 public class WeatherData {
-    private String city;
+    private String cityName;
     private int temperature;
-    private String weather;
+    private String weatherDescription;
     private String iconCode;
 
-    public WeatherData(String weather, int temperature, String city, String iconCode) {
-        this.weather = weather;
+    public WeatherData(String weatherDescription, int temperature, String city, String iconCode) {
+        this.weatherDescription = weatherDescription;
         this.temperature = temperature;
-        this.city = city;
+        this.cityName = city;
         this.iconCode = iconCode;
     }
 
-    public String getCity() {
-        return city;
+    public String getCityName() {
+        return cityName;
     }
 
-    public void setCity(String city) {
-        this.city = city;
+    public void setCityName(String cityName) {
+        this.cityName = cityName;
     }
 
     public int getTemperature() {
@@ -29,12 +29,12 @@ public class WeatherData {
         this.temperature = temperature;
     }
 
-    public String getWeather() {
-        return weather;
+    public String getWeatherDescription() {
+        return weatherDescription;
     }
 
-    public void setWeather(String weather) {
-        this.weather = weather;
+    public void setWeatherDescription(String weatherDescription) {
+        this.weatherDescription = weatherDescription;
     }
 
     public String getIconCode() {
