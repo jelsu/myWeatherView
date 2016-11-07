@@ -1,6 +1,7 @@
 package com.teaching.jelus.myweatherview;
 
 
+import android.os.Looper;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -12,7 +13,6 @@ import java.util.concurrent.Callable;
 
 public class GetDataTask implements Callable<String> {
     private final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
-    private final String LOCATION_ID = "498817";
     private final String CURRENT_CONDITIONS_URL = "http://api.openweathermap.org/data/2.5/weather/";
     private String compositeURL;
     private HttpURLConnection urlConnection = null;
@@ -23,8 +23,13 @@ public class GetDataTask implements Callable<String> {
 
     @Override
     public String call() throws Exception {
+        Looper.prepare();
+        LockationHelper lockationHelper = new LockationHelper(MyApp.getAppContext());
+        double latitude = lockationHelper.getLatitude();
+        double longitude = lockationHelper.getLongitude();
         compositeURL = CURRENT_CONDITIONS_URL
-                + "?id=" + LOCATION_ID
+                + "?lat=" + latitude
+                + "&lon=" + longitude
                 + "&appid=" + APP_ID
                 + "&units=metric";
         try {

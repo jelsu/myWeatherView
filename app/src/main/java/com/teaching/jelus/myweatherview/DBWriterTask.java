@@ -19,7 +19,7 @@ public class DBWriterTask implements Runnable {
                         mWeatherData.getCityName(),
                         mWeatherData.getTemperature(),
                         mWeatherData.getWeatherDescription(),
-                        mWeatherData.getIconCode());
+                        mWeatherData.getIcon());
             } catch (Exception e) {
                 e.printStackTrace();
             }

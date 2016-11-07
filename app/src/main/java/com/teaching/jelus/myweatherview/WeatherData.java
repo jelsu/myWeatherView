@@ -4,13 +4,13 @@ public class WeatherData {
     private String cityName;
     private int temperature;
     private String weatherDescription;
-    private String iconCode;
+    private byte[] icon;
 
-    public WeatherData(String weatherDescription, int temperature, String city, String iconCode) {
-        this.weatherDescription = weatherDescription;
+    public WeatherData(String cityName, int temperature, String weatherDescription, byte[] icon) {
+        this.cityName = cityName;
         this.temperature = temperature;
-        this.cityName = city;
-        this.iconCode = iconCode;
+        this.weatherDescription = weatherDescription;
+        this.icon = icon;
     }
 
     public String getCityName() {
@@ -37,11 +37,11 @@ public class WeatherData {
         this.weatherDescription = weatherDescription;
     }
 
-    public String getIconCode() {
-        return iconCode;
+    public byte[] getIcon() {
+        return icon;
     }
 
-    public void setIconCode(String iconCode) {
-        this.iconCode = iconCode;
+    public void setIcon(byte[] icon) {
+        this.icon = icon;
     }
 }
