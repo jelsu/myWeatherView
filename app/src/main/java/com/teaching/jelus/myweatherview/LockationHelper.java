@@ -9,14 +9,12 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
-import android.util.Log;
 
 import static android.content.Context.LOCATION_SERVICE;
 
 public class LockationHelper {
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
-    private final String TAG = "LockationHelper";
     private Location mLocation;
     private double latitude;
     private double longitude;
@@ -58,10 +56,6 @@ public class LockationHelper {
         }
         latitude = mLocation.getLatitude();
         longitude = mLocation.getLongitude();
-        Log.d(TAG, "GPS enabled: " + isGPSEnabled
-                + " Network enabled: " + isNetworkEnabled
-                + " Latitude: " + latitude
-                + " Longitude:" + longitude);
     }
 
     private void choseLocationUpdate(Context context, String provider) {

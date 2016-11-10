@@ -1,18 +1,15 @@
 package com.teaching.jelus.myweatherview;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
+    private final String TAG = "MyApp";
     public static TextView temperatureTextView;
     public static TextView showCityTextView;
     public static TextView weatherTextView;
@@ -28,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
         temperatureTextView = (TextView) findViewById(R.id.temperatureTextView);
         weatherTextView = (TextView) findViewById(R.id.weatherTextView);
         weatherIconImageView = (ImageView) findViewById(R.id.weatherIconImageView);
+
         mDatabaseHelper = new DatabaseHelper(MyApp.getAppContext());
         WeatherData weatherData = mDatabaseHelper.getWeatherData();
         showCityTextView.setText(weatherData.getCityName());
@@ -36,18 +34,8 @@ public class MainActivity extends AppCompatActivity {
         weatherTextView.setText(weatherData.getWeatherDescription());
         Bitmap image = convertByteArrayToBitmap(weatherData.getIcon());
         weatherIconImageView.setImageBitmap(image);
-        Log.d("MyApp", "TextView fill completed");
-        Toast.makeText(getApplicationContext(), "Connect: " + isConnect(), Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "TextView fill completed");
         mDatabaseHelper.close();
-    }
-
-    private boolean isConnect(){
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) MyApp
-                        .getAppContext()
-                        .getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return networkInfo != null && networkInfo.isConnectedOrConnecting();
     }
 
     private Bitmap convertByteArrayToBitmap(byte[] data){

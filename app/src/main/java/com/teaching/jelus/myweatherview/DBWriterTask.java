@@ -3,6 +3,7 @@ package com.teaching.jelus.myweatherview;
 import android.util.Log;
 
 public class DBWriterTask implements Runnable {
+    private final String TAG = "MyApp";
     DatabaseHelper mDatabaseHelper;
     WeatherData mWeatherData;
 
@@ -23,6 +24,6 @@ public class DBWriterTask implements Runnable {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        Log.d("MyApp", "DBWriterTask completed");
+        Log.d(TAG, "DBWriterTask completed");
     }
 }

@@ -2,6 +2,8 @@ package com.teaching.jelus.myweatherview;
 
 import android.app.Application;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -10,29 +12,37 @@ import java.util.concurrent.Future;
 
 public class MyApp extends Application {
     private static Context sContext;
-    private String url = "http://api.openweathermap.org/data/2.5/weather/";
-    private String cityId = "498817";
-    private String appId = "98fb5e0dcef9e5de3219365edf223805";
 
     @Override
     public void onCreate() {
         super.onCreate();
         MyApp.sContext = getApplicationContext();
-        ExecutorService pool = Executors.newSingleThreadExecutor();
-        GetDataTask getDataTask = new GetDataTask();
-        Future<String> jsonData = pool.submit(getDataTask);
-        try {
-            JsonParserTask jsonParserTask = new JsonParserTask(jsonData.get());
-            Future<WeatherData> jsonParcer = pool.submit(jsonParserTask);
-            WeatherData weatherData = jsonParcer.get();
-            DBWriterTask dbWriterTask = new DBWriterTask(weatherData);
-            pool.submit(dbWriterTask);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
+        if (isConnect()) {
+            ExecutorService pool = Executors.newSingleThreadExecutor();
+            GetDataTask getCurrentWeatherDataTask = new GetDataTask("weather/");
+            GetDataTask getForecastDataTask = new GetDataTask("forecast/daily/");
+            Future<String> jsonCurrentWeatherData = pool.submit(getCurrentWeatherDataTask);
+            Future<String> jsonForecastData = pool.submit(getForecastDataTask);
+            try {
+                JsonParserTask jsonParserTask = new JsonParserTask(jsonCurrentWeatherData.get());
+                Future<WeatherData> jsonParcer = pool.submit(jsonParserTask);
+                WeatherData weatherData = jsonParcer.get();
+                DBWriterTask dbWriterTask = new DBWriterTask(weatherData);
+                pool.submit(dbWriterTask);
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+            pool.shutdown();
         }
-        pool.shutdown();
+    }
+
+    private boolean isConnect(){
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) MyApp
+                        .getAppContext()
+                        .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnectedOrConnecting();
     }
 
     public static Context getAppContext() {

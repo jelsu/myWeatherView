@@ -31,7 +31,6 @@
     <ImageView
         android:layout_width="60dp"
         android:layout_height="60dp"
-        app:srcCompat="?android:attr/windowBackground"
         android:id="@+id/weatherIconImageView"
         android:layout_alignParentTop="true"
         android:layout_toRightOf="@+id/temperatureTextView"

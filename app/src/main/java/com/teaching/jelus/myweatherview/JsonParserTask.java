@@ -10,9 +10,11 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.concurrent.Callable;
 
 public class JsonParserTask implements Callable<WeatherData> {
+    private final String TAG = "MyApp";
     private JSONObject mJSONObject;
 
     public JsonParserTask(String JSONString) {
@@ -33,7 +35,9 @@ public class JsonParserTask implements Callable<WeatherData> {
         JSONObject main = mJSONObject.getJSONObject("main");
         int temperature = (int) Math.round(main.getDouble("temp"));
         String cityName = mJSONObject.getString("name");
-        Log.d("MyApp", "JsonParserTask completed");
+        Date time = new Date((long) 1478941200 * 1000);
+        Log.d(TAG, "Date of last access: " + time.toString());
+        Log.d(TAG, "JsonParserTask completed");
         return new WeatherData(description, temperature, cityName, image);
     }
 
