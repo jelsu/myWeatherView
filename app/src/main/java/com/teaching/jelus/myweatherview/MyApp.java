@@ -5,10 +5,8 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class MyApp extends Application {
     private static Context sContext;
@@ -19,7 +17,7 @@ public class MyApp extends Application {
         MyApp.sContext = getApplicationContext();
         if (isConnect()) {
             ExecutorService pool = Executors.newSingleThreadExecutor();
-            GetDataTask getCurrentWeatherDataTask = new GetDataTask("weather/");
+/*            GetDataTask getCurrentWeatherDataTask = new GetDataTask("weather/");
             GetDataTask getForecastDataTask = new GetDataTask("forecast/daily/");
             Future<String> jsonCurrentWeatherData = pool.submit(getCurrentWeatherDataTask);
             Future<String> jsonForecastData = pool.submit(getForecastDataTask);
@@ -31,7 +29,9 @@ public class MyApp extends Application {
                 pool.submit(dbWriterTask);
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
-            }
+            }*/
+            ReceivingDataTask receivingDataTask = new ReceivingDataTask();
+            pool.submit(receivingDataTask);
             pool.shutdown();
         }
     }
