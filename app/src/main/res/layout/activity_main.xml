@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
@@ -16,33 +15,45 @@
         style="@style/TemperatureTextStyle"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:id="@+id/temperatureTextView"/>
+        android:id="@+id/currentWeatherTemperatureTextView"/>
 
     <TextView
         style="@style/OtherTextStyle"
-        android:id="@+id/cityTextView"
-        android:layout_below="@+id/temperatureTextView"/>
+        android:id="@+id/currentWeatherCityTextView"
+        android:layout_below="@+id/currentWeatherTemperatureTextView"/>
 
     <TextView
         style="@style/OtherTextStyle"
-        android:id="@+id/weatherTextView"
-        android:layout_below="@+id/cityTextView"/>
+        android:id="@+id/currentWeatherDescriptionTextView"
+        android:layout_below="@+id/currentWeatherCityTextView"/>
 
     <TextView
         style="@style/OtherTextStyle"
-        android:id="@+id/dataTextView"
-        android:layout_below="@+id/weatherTextView"
+        android:id="@+id/currentWeatherDataTextView"
+        android:layout_below="@+id/currentWeatherDescriptionTextView"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"/>
 
     <ImageView
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:id="@+id/weatherIconImageView"
+        android:id="@+id/currentWeatherImageView"
         android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/temperatureTextView"
-        android:layout_toEndOf="@+id/temperatureTextView"
-        android:layout_marginLeft="20dp"/>
+        android:layout_toRightOf="@+id/currentWeatherTemperatureTextView"
+        android:layout_toEndOf="@+id/currentWeatherTemperatureTextView"
+        android:layout_marginLeft="20dp"
+        tools:ignore="RtlHardcoded"
+        android:contentDescription=""/>
+
+    <android.support.v7.widget.RecyclerView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/forecastRecyclerView"
+        android:scrollbars="vertical"
+        android:layout_below="@+id/currentWeatherDataTextView"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="12dp"/>
 
 
 </RelativeLayout>
