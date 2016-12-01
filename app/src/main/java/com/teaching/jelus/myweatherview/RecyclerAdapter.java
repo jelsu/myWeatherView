@@ -14,8 +14,7 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         private TextView mForecastTemperatureTextView;
-        private TextView mForecastCityTextView;
-        private TextView mWeatherDescriptionTextView;
+        private TextView mForecastWeatherDescriptionTextView;
         private TextView mForecastDataTextView;
         private ImageView mForecastImageView;
 
@@ -23,14 +22,12 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
         public ViewHolder(View v) {
             super(v);
             mForecastTemperatureTextView = (TextView) v.findViewById(
-                    R.id.forecastTemperatureTextView);
-            mForecastCityTextView = (TextView) v.findViewById(
-                    R.id.forecastCityTextView);
-            mWeatherDescriptionTextView = (TextView) v.findViewById(
-                    R.id.forecastWeatherDescriptionTextView);
+                    R.id.text_forecast_temperature);
+            mForecastWeatherDescriptionTextView = (TextView) v.findViewById(
+                    R.id.text_forecast_weather_description);
             mForecastDataTextView = (TextView) v.findViewById(
-                    R.id.forecastDataTextView);
-            mForecastImageView = (ImageView) v.findViewById(R.id.forecastImageView);
+                    R.id.text_forecast_date);
+            mForecastImageView = (ImageView) v.findViewById(R.id.image_forecast_weather);
         }
     }
 
@@ -49,9 +46,11 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         ForecastData forecastData = mDataset.get(position);
-        holder.mForecastTemperatureTextView.setText(String.valueOf(forecastData.getTemperature()));
-        holder.mForecastCityTextView.setText(forecastData.getCityName());
-        holder.mWeatherDescriptionTextView.setText(forecastData.getWeatherDescription());
+        holder.mForecastTemperatureTextView.setText(String.valueOf(forecastData.getTemperatureMin())
+                + "° / "
+                + String.valueOf(forecastData.getTemperatureMax())
+                + "°");
+        holder.mForecastWeatherDescriptionTextView.setText(forecastData.getWeatherDescription());
         holder.mForecastDataTextView.setText(forecastData.getData());
         holder.mForecastImageView.setImageBitmap(forecastData.getImage());
     }

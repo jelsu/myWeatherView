@@ -16,6 +16,7 @@ public class MyApp extends Application {
     public void onCreate() {
         super.onCreate();
         MyApp.sContext = getApplicationContext();
+        //TODO Create correct data update
         if (isConnect()) {
             ExecutorService pool = Executors.newSingleThreadExecutor();
             ReceivingDataTask receivingDataTask = new ReceivingDataTask();

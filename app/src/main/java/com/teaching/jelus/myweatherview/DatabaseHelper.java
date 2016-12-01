@@ -8,12 +8,13 @@ import android.provider.BaseColumns;
 import android.util.Log;
 
 public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
-    private final String TAG = "SQLite";
+    private static final String TAG = DatabaseHelper.class.getSimpleName();
     public static final String DATABASE_NAME = "mydatabase";
-    public static final int DATABASE_VERSION = 3;
+    public static final int DATABASE_VERSION = 4;
     public static final String TABLE_NAME = "weather";
     public static final String CITY_COLUMN = "city";
-    public static final String TEMPERATURE_COLUMN = "temperature";
+    public static final String TEMPERATURE_MIN_COLUMN = "temperature_min";
+    public static final String TEMPERATURE_MAX_COLUMN = "temperature_max";
     public static final String DATETIME_COLUMN = "datetime";
     public static final String WEATHER_COLUMN = "weather";
     public static final String IMAGE_COLUMN = "icon";
@@ -28,7 +29,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
                 + TABLE_NAME
                 + " (" + BaseColumns._ID + " integer primary key autoincrement, "
                 + CITY_COLUMN + " text not null, "
-                + TEMPERATURE_COLUMN + " integer not null, "
+                + TEMPERATURE_MIN_COLUMN + " integer not null, "
+                + TEMPERATURE_MAX_COLUMN + " integer not null, "
                 + WEATHER_COLUMN + " text not null,"
                 + DATETIME_COLUMN + " integer not null,"
                 + IMAGE_COLUMN + " blob not null);";
@@ -55,15 +57,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
         if (cursor.moveToFirst()){
             int idColIndex = cursor.getColumnIndex(BaseColumns._ID);
             int cityColIndex = cursor.getColumnIndex(CITY_COLUMN);
-            int temperatureColIndex = cursor.getColumnIndex(TEMPERATURE_COLUMN);
+            int temperatureMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
+            int temperatureMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
             int weatherColIndex = cursor.getColumnIndex(WEATHER_COLUMN);
             int dateTimeColIndex = cursor.getColumnIndex(DATETIME_COLUMN);
             int imageColIndex = cursor.getColumnIndex(IMAGE_COLUMN);
             do {
-                Log.d(TAG,
-                        "id = " + cursor.getInt(idColIndex)
+                Log.d(TAG, "id = " + cursor.getInt(idColIndex)
                         + "; City = " + cursor.getString(cityColIndex)
-                        + "; temperature = " + cursor.getInt(temperatureColIndex)
+                        + "; temperature_min = " + cursor.getInt(temperatureMinColIndex)
+                        + "; temperature_max = " + cursor.getInt(temperatureMaxColIndex)
                         + "; weather = " + cursor.getString(weatherColIndex)
                         + "; dateTime = " + cursor.getLong(dateTimeColIndex)
                         + "; imageBlob = " + cursor.getBlob(imageColIndex));

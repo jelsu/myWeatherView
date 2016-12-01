@@ -3,38 +3,34 @@ package com.teaching.jelus.myweatherview;
 import android.graphics.Bitmap;
 
 public class ForecastData {
-    private int temperature;
-    private String cityName;
+    private int temperatureMin;
+    private int temperatureMax;
     private String weatherDescription;
     private String data;
     private Bitmap image;
 
-    public ForecastData(int temperature,
-                        String cityName,
-                        String weatherDescription,
-                        String data,
-                        Bitmap image) {
-        this.temperature = temperature;
-        this.cityName = cityName;
+    public ForecastData(int temperatureMin, int temperatureMax, String weatherDescription, String data, Bitmap image) {
+        this.temperatureMin = temperatureMin;
+        this.temperatureMax = temperatureMax;
         this.weatherDescription = weatherDescription;
         this.data = data;
         this.image = image;
     }
 
-    public int getTemperature() {
-        return temperature;
+    public int getTemperatureMin() {
+        return temperatureMin;
     }
 
-    public void setTemperature(int temperature) {
-        this.temperature = temperature;
+    public void setTemperatureMin(int temperatureMin) {
+        this.temperatureMin = temperatureMin;
     }
 
-    public String getCityName() {
-        return cityName;
+    public int getTemperatureMax() {
+        return temperatureMax;
     }
 
-    public void setCityName(String cityName) {
-        this.cityName = cityName;
+    public void setTemperatureMax(int temperatureMax) {
+        this.temperatureMax = temperatureMax;
     }
 
     public String getWeatherDescription() {

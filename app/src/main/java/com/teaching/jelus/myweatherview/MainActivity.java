@@ -20,15 +20,16 @@ import static com.teaching.jelus.myweatherview.DatabaseHelper.CITY_COLUMN;
 import static com.teaching.jelus.myweatherview.DatabaseHelper.DATETIME_COLUMN;
 import static com.teaching.jelus.myweatherview.DatabaseHelper.IMAGE_COLUMN;
 import static com.teaching.jelus.myweatherview.DatabaseHelper.TABLE_NAME;
-import static com.teaching.jelus.myweatherview.DatabaseHelper.TEMPERATURE_COLUMN;
+import static com.teaching.jelus.myweatherview.DatabaseHelper.TEMPERATURE_MAX_COLUMN;
+import static com.teaching.jelus.myweatherview.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
 import static com.teaching.jelus.myweatherview.DatabaseHelper.WEATHER_COLUMN;
 
 public class MainActivity extends AppCompatActivity {
-    private final String TAG = "MyApp";
-    private TextView mCurrentWeatherTemperatureTextView;
-    private TextView mCurrentWeatherCityTextView;
-    private TextView mCurrentWeatherDescriptionTextView;
-    private ImageView mCurrentWeatherImageView;
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private TextView mTemperatureTextView;
+    private TextView mCityNameTextView;
+    private TextView mWeatherDescriptionTextView;
+    private ImageView mWeatherImageView;
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
@@ -40,12 +41,12 @@ public class MainActivity extends AppCompatActivity {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mCurrentWeatherCityTextView = (TextView) findViewById(R.id.currentWeatherCityTextView);
-        mCurrentWeatherTemperatureTextView = (TextView) findViewById(R.id.currentWeatherTemperatureTextView);
-        mCurrentWeatherDescriptionTextView = (TextView) findViewById(R.id.currentWeatherDescriptionTextView);
-        mDateTimeTextView = (TextView) findViewById(R.id.currentWeatherDataTextView);
-        mCurrentWeatherImageView = (ImageView) findViewById(R.id.currentWeatherImageView);
-        mRecyclerView = (RecyclerView) findViewById(R.id.forecastRecyclerView);
+        mCityNameTextView = (TextView) findViewById(R.id.text_city_name);
+        mTemperatureTextView = (TextView) findViewById(R.id.text_temperature);
+        mWeatherDescriptionTextView = (TextView) findViewById(R.id.text_weather_description);
+        mDateTimeTextView = (TextView) findViewById(R.id.text_weather_date);
+        mWeatherImageView = (ImageView) findViewById(R.id.image_weather);
+        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_forecast);
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
     }
@@ -80,23 +81,26 @@ public class MainActivity extends AppCompatActivity {
         Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
         if (cursor.moveToFirst()){
             int cityColIndex = cursor.getColumnIndex(CITY_COLUMN);
-            int temperatureColIndex = cursor.getColumnIndex(TEMPERATURE_COLUMN);
+            int temperatureMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
+            int temperatureMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
             int weatherColIndex = cursor.getColumnIndex(WEATHER_COLUMN);
             int dateTimeColIndex = cursor.getColumnIndex(DATETIME_COLUMN);
             int imageColIndex = cursor.getColumnIndex(IMAGE_COLUMN);
             String cityName = cursor.getString(cityColIndex);
-            int temperature = cursor.getInt(temperatureColIndex);
+            int temperatureMin = cursor.getInt(temperatureMinColIndex);
+            int temperatureMax = cursor.getInt(temperatureMaxColIndex);
+            String averageTemperature = String.valueOf(Math.round((double) (temperatureMax
+                    + temperatureMin) / 2));
             String weatherDescription = cursor.getString(weatherColIndex);
-            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
-            String date = dateFormat
-                    .format(convertUnixTimeToData(cursor.getLong(dateTimeColIndex)));
+            long unixDate = cursor.getLong(dateTimeColIndex);
+            long lastUpdate = getMinDifferenceBetweenDates(unixDate * 1000);
             Bitmap image = convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
-            mCurrentWeatherCityTextView.setText(cityName);
-            mCurrentWeatherTemperatureTextView.setText(String.valueOf(temperature) + "°C");
-            mCurrentWeatherDescriptionTextView.setText(weatherDescription);
+            mCityNameTextView.setText(cityName);
+            mTemperatureTextView.setText(averageTemperature + "°");
+            mWeatherDescriptionTextView.setText(weatherDescription);
             mDateTimeTextView.setText(
-                    "Последнее обновление: " + date);
-            mCurrentWeatherImageView.setImageBitmap(image);
+                    "Обновлено " + lastUpdate + " мин. назад");
+            mWeatherImageView.setImageBitmap(image);
         } else {
             Log.d(TAG, "Database is null");
         }
@@ -109,20 +113,18 @@ public class MainActivity extends AppCompatActivity {
         if (cursor.moveToFirst()){
             cursor.moveToNext();
             do {
-                int cityColIndex = cursor.getColumnIndex(CITY_COLUMN);
-                int temperatureColIndex = cursor.getColumnIndex(TEMPERATURE_COLUMN);
+                int temperatureMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
+                int temperatureMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
                 int weatherColIndex = cursor.getColumnIndex(WEATHER_COLUMN);
                 int dateTimeColIndex = cursor.getColumnIndex(DATETIME_COLUMN);
                 int imageColIndex = cursor.getColumnIndex(IMAGE_COLUMN);
-                String cityName = cursor.getString(cityColIndex);
-                int temperature = cursor.getInt(temperatureColIndex);
+                int temperatureMin = cursor.getInt(temperatureMinColIndex);
+                int temperatureMax = cursor.getInt(temperatureMaxColIndex);
                 String weatherDescription = cursor.getString(weatherColIndex);
-                SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
-                String date = dateFormat
-                        .format(convertUnixTimeToData(cursor.getLong(dateTimeColIndex)));
+                String date = getStringDate(convertUnixTimeToData(cursor.getLong(dateTimeColIndex)));
                 Bitmap image = convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
                 ForecastData forecastData =
-                        new ForecastData(temperature, cityName, weatherDescription, date, image);
+                        new ForecastData(temperatureMin, temperatureMax, weatherDescription, date, image);
                 forecastArrayList.add(forecastData);
             }
             while (cursor.moveToNext());
@@ -141,5 +143,22 @@ public class MainActivity extends AppCompatActivity {
 
     private Date convertUnixTimeToData(long unixTime){
         return new Date(unixTime * 1000);
+    }
+
+    private String getStringDate(Date date) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM");
+        Date currentDate = new Date();
+        long minDifference = getMinDifferenceBetweenDates(date.getTime());
+        if (dateFormat.format(date).equals(dateFormat.format(currentDate))){
+            return "Сегодня";
+        } else if (minDifference <= 1440){
+            return "Завтра";
+        }
+        return dateFormat.format(date);
+    }
+
+    private long getMinDifferenceBetweenDates(long date) {
+        long millisDifference = Math.abs(System.currentTimeMillis() - date) / 1000;
+        return millisDifference / 60;
     }
 }

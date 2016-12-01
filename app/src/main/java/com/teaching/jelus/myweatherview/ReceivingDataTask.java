@@ -19,7 +19,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class ReceivingDataTask implements Runnable {
-    private final String TAG = "MyApp";
+    private static final String TAG = ReceivingDataTask.class.getSimpleName();
     private final String BEGINNING_URL = "http://api.openweathermap.org/data/2.5/";
     private final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
     private LockationHelper mLockationHelper;
@@ -59,14 +59,15 @@ public class ReceivingDataTask implements Runnable {
         Log.d(TAG, "Composite URL: " + compositeUrl.toString());
         URL url = new URL(compositeUrl.toString());
         String result = getStringFromUrl(url);
-        Log.d(TAG, "getDataOnRequest method with request type " + requestType + " worked");
+        Log.d(TAG, "this method with request type " + requestType + " worked");
         return result;
     }
 
     private void currentWeatherDataInDatabase(JSONObject jsonObject) throws Exception{
         String cityName = jsonObject.getString("name");
         JSONObject main = jsonObject.getJSONObject("main");
-        int temperature = (int) Math.round(main.getDouble("temp"));
+        int temperatureMin = (int) Math.round(main.getDouble("temp_min"));
+        int temperatureMax = (int) Math.round(main.getDouble("temp_max"));
         JSONArray weatherArray = jsonObject.getJSONArray("weather");
         JSONObject weather = (JSONObject) weatherArray.get(0);
         String weatherDescription = weather.getString("description");
@@ -76,7 +77,8 @@ public class ReceivingDataTask implements Runnable {
         SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(DatabaseHelper.CITY_COLUMN, cityName);
-        values.put(DatabaseHelper.TEMPERATURE_COLUMN, temperature);
+        values.put(DatabaseHelper.TEMPERATURE_MIN_COLUMN, temperatureMin);
+        values.put(DatabaseHelper.TEMPERATURE_MAX_COLUMN, temperatureMax);
         values.put(DatabaseHelper.WEATHER_COLUMN, weatherDescription);
         values.put(DatabaseHelper.DATETIME_COLUMN, dateTime);
         values.put(DatabaseHelper.IMAGE_COLUMN, image);
@@ -93,7 +95,8 @@ public class ReceivingDataTask implements Runnable {
             String cityName = city.getString("name");
             JSONObject item = (JSONObject) list.get(i);
             JSONObject temp = item.getJSONObject("temp");
-            int temperature = (int) Math.round(temp.getDouble("min"));
+            int temperatureMin = (int) Math.round(temp.getDouble("min"));
+            int temperatureMax = (int) Math.round(temp.getDouble("max"));
             JSONArray weatherArray = item.getJSONArray("weather");
             JSONObject weather = (JSONObject) weatherArray.get(0);
             String weatherDescription = weather.getString("description");
@@ -103,7 +106,8 @@ public class ReceivingDataTask implements Runnable {
             SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(DatabaseHelper.CITY_COLUMN, cityName);
-            values.put(DatabaseHelper.TEMPERATURE_COLUMN, temperature);
+            values.put(DatabaseHelper.TEMPERATURE_MIN_COLUMN, temperatureMin);
+            values.put(DatabaseHelper.TEMPERATURE_MAX_COLUMN, temperatureMax);
             values.put(DatabaseHelper.WEATHER_COLUMN, weatherDescription);
             values.put(DatabaseHelper.DATETIME_COLUMN, dateTime);
             values.put(DatabaseHelper.IMAGE_COLUMN, image);
