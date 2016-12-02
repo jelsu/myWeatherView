@@ -7,7 +7,9 @@ import android.graphics.BitmapFactory;
 import android.os.Looper;
 import android.util.Log;
 
+import org.greenrobot.eventbus.EventBus;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -35,13 +37,19 @@ public class ReceivingDataTask implements Runnable {
             String forecastStringData = getDataOnRequest("forecast/daily/");
             JSONObject currentWeatherJsonData = new JSONObject(currentWeatherStringData);
             JSONObject forecastJsonData = new JSONObject(forecastStringData);
-            mDatabaseHelper.deleteAll();
-            currentWeatherDataInDatabase(currentWeatherJsonData);
-            forecastInDatabase(forecastJsonData);
-            mDatabaseHelper.showDataInLog();
+            if (isDataCorrect(currentWeatherJsonData) && isDataCorrect(forecastJsonData)) {
+                mDatabaseHelper.deleteAll();
+                currentWeatherDataInDatabase(currentWeatherJsonData);
+                forecastInDatabase(forecastJsonData);
+                mDatabaseHelper.showDataInLog();
+                EventBus.getDefault().post("success");
+            } else {
+                EventBus.getDefault().post("error");
+            }
             mDatabaseHelper.close();
         } catch (Exception e) {
             e.printStackTrace();
+            EventBus.getDefault().post("error");
             mDatabaseHelper.close();
         }
     }
@@ -49,11 +57,10 @@ public class ReceivingDataTask implements Runnable {
     private String getDataOnRequest(String requestType) throws Exception {
         double latitude = mLockationHelper.getLatitude();
         double longitude = mLockationHelper.getLongitude();
-        Log.d("MyApp", "Current lockation latitude: " + latitude + "; longitude: " + longitude);
+        Log.d(TAG, "Current lockation latitude: " + latitude + "; longitude: " + longitude);
         StringBuilder compositeUrl = new StringBuilder(BEGINNING_URL + requestType);
         compositeUrl.append("?lat=" + latitude);
         compositeUrl.append("&lon=" + longitude);
-        compositeUrl.append("&lang=ru");
         compositeUrl.append("&appid=" + APP_ID);
         compositeUrl.append("&units=metric");
         Log.d(TAG, "Composite URL: " + compositeUrl.toString());
@@ -150,5 +157,13 @@ public class ReceivingDataTask implements Runnable {
             e.printStackTrace();
         }
         return new byte[0];
+    }
+
+    private boolean isDataCorrect(JSONObject data) throws JSONException {
+        int cod = data.getInt("cod");
+        if (cod == 200){
+            return true;
+        }
+        return false;
     }
 }

@@ -3,7 +3,6 @@
     <string name="text_temperature">00°</string>
     <string name="text_city_name">city name</string>
     <string name="text_description">description</string>
-    <string name="text_date">Последнее обновление: 12.12.12 00.00</string>
-    <string name="text_forecast">Forecast:</string>
+    <string name="text_date">Updated a few days ago</string>
     <string name="text_forecast_temperature">00° / 00°</string>
 </resources>

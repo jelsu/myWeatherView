@@ -1,9 +1,12 @@
 package com.teaching.jelus.myweatherview;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,10 +14,18 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.teaching.jelus.myweatherview.DatabaseHelper.CITY_COLUMN;
 import static com.teaching.jelus.myweatherview.DatabaseHelper.DATETIME_COLUMN;
@@ -35,12 +46,14 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView.LayoutManager mLayoutManager;
     private TextView mDateTimeTextView;
     private DatabaseHelper mDatabaseHelper;
+    private ExecutorService mPool;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        EventBus.getDefault().register(this);
         mCityNameTextView = (TextView) findViewById(R.id.text_city_name);
         mTemperatureTextView = (TextView) findViewById(R.id.text_temperature);
         mWeatherDescriptionTextView = (TextView) findViewById(R.id.text_weather_description);
@@ -49,6 +62,11 @@ public class MainActivity extends AppCompatActivity {
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_forecast);
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
+        mPool = (ExecutorService) getLastCustomNonConfigurationInstance();
+        if (mPool == null) {
+            mPool = MyApp.getPool();
+            receiveData();
+        }
     }
 
     @Override
@@ -57,17 +75,34 @@ public class MainActivity extends AppCompatActivity {
         updateUI();
     }
 
+    @Override
+    protected void onDestroy() {
+        mPool.shutdownNow();
+        EventBus.getDefault().unregister(this);
+        super.onDestroy();
+    }
+
+    @Override
+    public Object onRetainCustomNonConfigurationInstance() {
+        return mPool;
+    }
+
+    private void receiveData() {
+        if (isConnect()) {
+            mPool = Executors.newSingleThreadExecutor();
+            mPool.submit(new ReceivingDataTask());
+            mPool.shutdown();
+        } else {
+            Toast.makeText(getApplicationContext(), "No internet connection", Toast.LENGTH_SHORT).show();
+        }
+        Log.d(TAG, "receiveData method completed");
+    }
+
     private void updateUI(){
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                //TODO This is temporary solution, needs correction
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                mDatabaseHelper = new DatabaseHelper(MyApp.getAppContext());
+                mDatabaseHelper = new DatabaseHelper(getApplicationContext());
                 SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
                 showCurrentWeatherData(db);
                 showForecastData(db);
@@ -75,6 +110,22 @@ public class MainActivity extends AppCompatActivity {
                 mDatabaseHelper.close();
             }
         });
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(String requst) {
+        switch (requst){
+            case "success":
+                Toast.makeText(getApplicationContext(),
+                        "Data successfully updated", Toast.LENGTH_LONG).show();
+                updateUI();
+                break;
+            case "error":
+                Toast.makeText(getApplicationContext(),
+                        "Receiving data error", Toast.LENGTH_LONG).show();
+                break;
+        }
+
     }
 
     private void showCurrentWeatherData(SQLiteDatabase db) {
@@ -93,13 +144,13 @@ public class MainActivity extends AppCompatActivity {
                     + temperatureMin) / 2));
             String weatherDescription = cursor.getString(weatherColIndex);
             long unixDate = cursor.getLong(dateTimeColIndex);
-            long lastUpdate = getMinDifferenceBetweenDates(unixDate * 1000);
+            long lastUpdateTime = getMinDifferenceBetweenDates(unixDate * 1000);
+            String lastUpdateStr = getLastUpdateString(lastUpdateTime);
             Bitmap image = convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
             mCityNameTextView.setText(cityName);
             mTemperatureTextView.setText(averageTemperature + "°");
             mWeatherDescriptionTextView.setText(weatherDescription);
-            mDateTimeTextView.setText(
-                    "Обновлено " + lastUpdate + " мин. назад");
+            mDateTimeTextView.setText(lastUpdateStr);
             mWeatherImageView.setImageBitmap(image);
         } else {
             Log.d(TAG, "Database is null");
@@ -141,6 +192,14 @@ public class MainActivity extends AppCompatActivity {
         return bitmap;
     }
 
+    private boolean isConnect(){
+        ConnectivityManager connectivityManager = (ConnectivityManager) MyApp
+                .getAppContext()
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnectedOrConnecting();
+    }
+
     private Date convertUnixTimeToData(long unixTime){
         return new Date(unixTime * 1000);
     }
@@ -150,15 +209,26 @@ public class MainActivity extends AppCompatActivity {
         Date currentDate = new Date();
         long minDifference = getMinDifferenceBetweenDates(date.getTime());
         if (dateFormat.format(date).equals(dateFormat.format(currentDate))){
-            return "Сегодня";
+            return "Today";
         } else if (minDifference <= 1440){
-            return "Завтра";
+            return "Tomorrow";
         }
-        return dateFormat.format(date);
+        return new SimpleDateFormat("EEEE", Locale.ENGLISH).format(date);
     }
 
     private long getMinDifferenceBetweenDates(long date) {
         long millisDifference = Math.abs(System.currentTimeMillis() - date) / 1000;
         return millisDifference / 60;
+    }
+
+    private String getLastUpdateString(long updateTime){
+        if (updateTime >= 60){
+            int hours = (int) updateTime / 60;
+            if (hours > 24){
+                return "Updated a few days ago";
+            }
+            return "Updated " + hours + " hours ago";
+        }
+        return "Updated " + updateTime + " minutes ago";
     }
 }
