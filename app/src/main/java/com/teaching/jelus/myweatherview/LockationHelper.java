@@ -16,11 +16,13 @@ public class LockationHelper {
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
     private Location mLocation;
+    private Context mContext;
     private double latitude;
     private double longitude;
 
     public LockationHelper(Context context) {
-        mLocationManager = (LocationManager) context.getSystemService(LOCATION_SERVICE);
+        mContext = context;
+        mLocationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
         mLocationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
@@ -44,14 +46,14 @@ public class LockationHelper {
         };
         boolean isGPSEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean isNetworkEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        if (!isGPSEnabled && !isNetworkEnabled){
-            context.startActivity(new Intent(
+        if (!isGPSEnabled && !isNetworkEnabled) {
+            mContext.startActivity(new Intent(
                     android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-        } else{
-            if (isGPSEnabled){
-                choseLocationUpdate(context, LocationManager.GPS_PROVIDER);
-            } else{
-                choseLocationUpdate(context, LocationManager.NETWORK_PROVIDER);
+        } else {
+            if (isGPSEnabled) {
+                choseLocationUpdate(mContext, LocationManager.GPS_PROVIDER);
+            } else {
+                choseLocationUpdate(mContext, LocationManager.NETWORK_PROVIDER);
             }
         }
         latitude = mLocation.getLatitude();
@@ -60,11 +62,11 @@ public class LockationHelper {
 
     private void choseLocationUpdate(Context context, String provider) {
         if (ActivityCompat.checkSelfPermission(
-                context,
+                mContext,
                 Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(
-                        context,
+                        mContext,
                         Manifest.permission.ACCESS_COARSE_LOCATION)
                         != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
@@ -91,5 +93,26 @@ public class LockationHelper {
 
     public double getLongitude() {
         return longitude;
+    }
+
+    public void stop() {
+        if (ActivityCompat.checkSelfPermission(
+                mContext,
+                Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(
+                        mContext,
+                        Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        mLocationManager.removeUpdates(mLocationListener);
     }
 }

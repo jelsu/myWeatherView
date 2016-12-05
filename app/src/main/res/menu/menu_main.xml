@@ -2,17 +2,23 @@
 <menu xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:android="http://schemas.android.com/apk/res/android">
 
-
     <item
         android:id="@+id/menu_item_lockation"
         android:orderInCategory="100"
         app:showAsAction="never"
-        android:enabled="false"
+        android:visible="false"
         android:title="@string/menu_item_lockation"/>
     <item
         android:id="@+id/menu_item_update"
         android:orderInCategory="100"
         app:showAsAction="never"
-        android:enabled="false"
+        android:visible="false"
         android:title="@string/menu_item_update"/>
+    <item
+        android:id="@+id/menu_item_back"
+        android:orderInCategory="100"
+        app:showAsAction="always"
+        android:visible="false"
+        android:icon="@drawable/ic_back"/>
+
 </menu>

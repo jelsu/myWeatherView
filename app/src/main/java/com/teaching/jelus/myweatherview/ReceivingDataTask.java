@@ -57,6 +57,7 @@ public class ReceivingDataTask implements Runnable {
     private String getDataOnRequest(String requestType) throws Exception {
         double latitude = mLockationHelper.getLatitude();
         double longitude = mLockationHelper.getLongitude();
+        mLockationHelper.stop();
         Log.d(TAG, "Current lockation latitude: " + latitude + "; longitude: " + longitude);
         StringBuilder compositeUrl = new StringBuilder(BEGINNING_URL + requestType);
         compositeUrl.append("?lat=" + latitude);

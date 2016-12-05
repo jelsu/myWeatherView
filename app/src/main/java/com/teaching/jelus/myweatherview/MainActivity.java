@@ -25,8 +25,10 @@ public class MainActivity extends AppCompatActivity {
     private FragmentTransaction mFragmentTransaction;
     private ProgressFragment mProgressFragment;
     private WeatherFragment mWeatherFragment;
+    private LockationFragment mLockationFragment;
     private MenuItem mItemLockation;
     private MenuItem mItemUpdate;
+    private MenuItem mItemBack;
     private ExecutorService mPool;
 
     @Override
@@ -40,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
             mFragmentTransaction = mFragmentManager.beginTransaction();
             mProgressFragment = new ProgressFragment();
             mWeatherFragment = new WeatherFragment();
+            mLockationFragment = new LockationFragment();
             mFragmentTransaction.add(R.id.container, mProgressFragment);
             mFragmentTransaction.commit();
             mPool = MyApp.getPool();
@@ -70,22 +73,56 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         mItemLockation = menu.findItem(R.id.menu_item_lockation);
         mItemUpdate = menu.findItem(R.id.menu_item_update);
+        mItemBack = menu.findItem(R.id.menu_item_back);
         return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (mProgressFragment.isAdded()){
+            mItemLockation.setVisible(true);
+            mItemUpdate.setVisible(true);
+            mItemBack.setVisible(false);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mLockationFragment.isAdded()){
+            mItemLockation.setVisible(true);
+            mItemUpdate.setVisible(true);
+            mItemBack.setVisible(false);
+        }
+        super.onBackPressed();
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
+        mFragmentTransaction = mFragmentManager.beginTransaction();
         switch (id){
             case R.id.menu_item_lockation:
+                mFragmentTransaction.addToBackStack(null);
+                mFragmentTransaction.replace(R.id.container, mLockationFragment);
+                mFragmentTransaction.commit();
+                mItemLockation.setVisible(false);
+                mItemUpdate.setVisible(false);
+                mItemBack.setVisible(true);
                 return true;
             case R.id.menu_item_update:
-                mItemLockation.setEnabled(false);
-                mItemUpdate.setEnabled(false);
-                mFragmentTransaction = mFragmentManager.beginTransaction();
                 mFragmentTransaction.replace(R.id.container, mProgressFragment);
                 mFragmentTransaction.commit();
+                mItemLockation.setVisible(false);
+                mItemUpdate.setVisible(false);
                 receiveData();
+                return true;
+            case R.id.menu_item_back:
+                mFragmentTransaction.replace(R.id.container, mWeatherFragment);
+                mFragmentTransaction.commit();
+                mItemLockation.setVisible(true);
+                mItemUpdate.setVisible(true);
+                mItemBack.setVisible(false);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -94,8 +131,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(String requst) {
-        mItemLockation.setEnabled(true);
-        mItemUpdate.setEnabled(true);
+        mItemLockation.setVisible(true);
+        mItemUpdate.setVisible(true);
+        mItemBack.setVisible(false);
         mFragmentTransaction = mFragmentManager.beginTransaction();
         mFragmentTransaction.replace(R.id.container, mWeatherFragment);
         mFragmentTransaction.commit();
