@@ -46,9 +46,9 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         ForecastData forecastData = mDataset.get(position);
-        holder.mForecastTemperatureTextView.setText(String.valueOf(forecastData.getTemperatureMin())
+        holder.mForecastTemperatureTextView.setText(String.valueOf(forecastData.getTemperatureMax())
                 + "° / "
-                + String.valueOf(forecastData.getTemperatureMax())
+                + String.valueOf(forecastData.getTemperatureMin())
                 + "°");
         holder.mForecastWeatherDescriptionTextView.setText(forecastData.getWeatherDescription());
         holder.mForecastDataTextView.setText(forecastData.getData());

@@ -74,6 +74,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
         } else {
             Log.d(TAG, "Database is null");
         }
+        cursor.close();
         db.close();
+    }
+
+    public int getCountRows(){
+        int count;
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
+        cursor.moveToFirst();
+        count = cursor.getCount();
+        cursor.close();
+        db.close();
+        return count;
     }
 }
