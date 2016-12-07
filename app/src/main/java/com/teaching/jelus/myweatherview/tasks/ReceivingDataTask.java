@@ -1,4 +1,4 @@
-package com.teaching.jelus.myweatherview;
+package com.teaching.jelus.myweatherview.tasks;
 
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
@@ -6,6 +6,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Looper;
 import android.util.Log;
+
+import com.teaching.jelus.myweatherview.DataEvent;
+import com.teaching.jelus.myweatherview.MyApp;
+import com.teaching.jelus.myweatherview.helpers.DatabaseHelper;
+import com.teaching.jelus.myweatherview.helpers.LocationHelper;
 
 import org.greenrobot.eventbus.EventBus;
 import org.json.JSONArray;
@@ -24,15 +29,20 @@ public class ReceivingDataTask implements Runnable {
     private static final String TAG = ReceivingDataTask.class.getSimpleName();
     private final String BEGINNING_URL = "http://api.openweathermap.org/data/2.5/";
     private final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
-    private LockationHelper mLockationHelper;
+    private final String mCityName;
+    private LocationHelper mLocationHelper;
     private DatabaseHelper mDatabaseHelper;
+
+    public ReceivingDataTask(String cityName) {
+        mCityName = cityName;
+    }
 
     @Override
     public void run() {
         try {
             Looper.prepare();
             mDatabaseHelper = new DatabaseHelper(MyApp.getAppContext());
-            mLockationHelper = new LockationHelper(MyApp.getAppContext());
+            mLocationHelper = new LocationHelper(MyApp.getAppContext());
             String currentWeatherStringData = getDataOnRequest("weather/");
             String forecastStringData = getDataOnRequest("forecast/daily/");
             JSONObject currentWeatherJsonData = new JSONObject(currentWeatherStringData);
@@ -42,31 +52,38 @@ public class ReceivingDataTask implements Runnable {
                 currentWeatherDataInDatabase(currentWeatherJsonData);
                 forecastInDatabase(forecastJsonData);
                 mDatabaseHelper.showDataInLog();
-                EventBus.getDefault().post("success");
+                EventBus.getDefault().post(new DataEvent("Receive Data",
+                        "Data successfully updated"));
             } else {
-                EventBus.getDefault().post("error");
+                EventBus.getDefault().post(new DataEvent("Receive Data",
+                        "Receiving data error"));
             }
             mDatabaseHelper.close();
         } catch (Exception e) {
             e.printStackTrace();
-            EventBus.getDefault().post("error");
+            EventBus.getDefault().post(new DataEvent("Receive Data",
+                    "Receiving data error"));
             mDatabaseHelper.close();
         }
     }
 
     private String getDataOnRequest(String requestType) throws Exception {
-        double latitude = mLockationHelper.getLatitude();
-        double longitude = mLockationHelper.getLongitude();
-        mLockationHelper.stop();
-        Log.d(TAG, "Current lockation latitude: " + latitude + "; longitude: " + longitude);
+        double latitude = mLocationHelper.getLatitude();
+        double longitude = mLocationHelper.getLongitude();
+        String coordStr = "?lat=" + latitude + "&lon=" + longitude;
+        Log.d(TAG, "Current location latitude: " + latitude + "; longitude: " + longitude);
         StringBuilder compositeUrl = new StringBuilder(BEGINNING_URL + requestType);
-        compositeUrl.append("?lat=" + latitude);
-        compositeUrl.append("&lon=" + longitude);
+        if (!mCityName.equals("")){
+            compositeUrl.append("?q=" + mCityName);
+        } else {
+            compositeUrl.append(coordStr);
+        }
         compositeUrl.append("&appid=" + APP_ID);
         compositeUrl.append("&units=metric");
         Log.d(TAG, "Composite URL: " + compositeUrl.toString());
         URL url = new URL(compositeUrl.toString());
         String result = getStringFromUrl(url);
+        mLocationHelper.stop();
         Log.d(TAG, "this method with request type " + requestType + " worked");
         return result;
     }

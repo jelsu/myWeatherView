@@ -1,4 +1,4 @@
-package com.teaching.jelus.myweatherview;
+package com.teaching.jelus.myweatherview.helpers;
 
 import android.Manifest;
 import android.content.Context;
@@ -12,7 +12,7 @@ import android.support.v4.app.ActivityCompat;
 
 import static android.content.Context.LOCATION_SERVICE;
 
-public class LockationHelper {
+public class LocationHelper {
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
     private Location mLocation;
@@ -20,7 +20,7 @@ public class LockationHelper {
     private double latitude;
     private double longitude;
 
-    public LockationHelper(Context context) {
+    public LocationHelper(Context context) {
         mContext = context;
         mLocationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
         mLocationListener = new LocationListener() {

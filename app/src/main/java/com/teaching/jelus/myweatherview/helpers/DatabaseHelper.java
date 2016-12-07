@@ -1,4 +1,4 @@
-package com.teaching.jelus.myweatherview;
+package com.teaching.jelus.myweatherview.helpers;
 
 import android.content.Context;
 import android.database.Cursor;

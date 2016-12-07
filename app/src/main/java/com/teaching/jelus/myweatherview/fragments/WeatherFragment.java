@@ -1,4 +1,4 @@
-package com.teaching.jelus.myweatherview;
+package com.teaching.jelus.myweatherview.fragments;
 
 
 import android.database.Cursor;
@@ -16,18 +16,23 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.teaching.jelus.myweatherview.ForecastData;
+import com.teaching.jelus.myweatherview.R;
+import com.teaching.jelus.myweatherview.adapters.RecyclerAdapter;
+import com.teaching.jelus.myweatherview.helpers.DatabaseHelper;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
-import static com.teaching.jelus.myweatherview.DatabaseHelper.CITY_COLUMN;
-import static com.teaching.jelus.myweatherview.DatabaseHelper.DATETIME_COLUMN;
-import static com.teaching.jelus.myweatherview.DatabaseHelper.IMAGE_COLUMN;
-import static com.teaching.jelus.myweatherview.DatabaseHelper.TABLE_NAME;
-import static com.teaching.jelus.myweatherview.DatabaseHelper.TEMPERATURE_MAX_COLUMN;
-import static com.teaching.jelus.myweatherview.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
-import static com.teaching.jelus.myweatherview.DatabaseHelper.WEATHER_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.CITY_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.DATETIME_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.IMAGE_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TABLE_NAME;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MAX_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.WEATHER_COLUMN;
 
 public class WeatherFragment extends Fragment {
     private static final String TAG = WeatherFragment.class.getSimpleName();

@@ -3,12 +3,15 @@
              android:layout_width="match_parent"
              android:layout_height="match_parent"
               android:orientation="vertical"
-             tools:context="com.teaching.jelus.myweatherview.LockationFragment">
+             tools:context="com.teaching.jelus.myweatherview.fragments.LocationFragment">
 
     <EditText
         android:id="@+id/edit_city_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLength="24"
         android:gravity="center"
         android:hint="Input your city name here"
         android:maxLines="1"/>
@@ -17,8 +20,9 @@
         android:id="@+id/check_locate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/check_lockation"
-        android:checked="true"
+        android:visibility="invisible"
+        android:text="@string/check_location"
+        android:checked="false"
         android:layout_marginTop="10dp"
         />
 </LinearLayout>
