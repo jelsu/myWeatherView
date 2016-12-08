@@ -33,9 +33,7 @@ public class LocationFragment extends Fragment {
         mCityNameEdit = (EditText) view.findViewById(R.id.edit_city_name);
         mLocateCheck = (CheckBox) view.findViewById(R.id.check_locate);
         mPreferences = getActivity().getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        mCityNameEdit.setText(mPreferences.getString(CITY_NAME, ""));
-        mLocateCheck.setChecked(mPreferences.getBoolean(LOCATE, false));
-        checkLocationEnable();
+        checkLocationWidgetEnable();
         mCityNameEdit.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
@@ -45,7 +43,6 @@ public class LocationFragment extends Fragment {
                     mCityNameEdit.setText(trimmedCityName);
                     mCityNameEdit.setSelection(mCityNameEdit.getText().length());
                     if (!trimmedCityName.equals("")){
-                        savePreferences();
                         EventBus.getDefault().post(new DataEvent("Update request",
                                 trimmedCityName));
                     }
@@ -61,7 +58,7 @@ public class LocationFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                checkLocationEnable();
+                checkLocationWidgetEnable();
             }
 
             @Override
@@ -72,9 +69,16 @@ public class LocationFragment extends Fragment {
     }
 
     @Override
-    public void onDestroyView() {
+    public void onResume() {
+        super.onResume();
+        mCityNameEdit.setText(mPreferences.getString(CITY_NAME, ""));
+        mLocateCheck.setChecked(mPreferences.getBoolean(LOCATE, false));
+    }
+
+    @Override
+    public void onPause() {
         savePreferences();
-        super.onDestroyView();
+        super.onPause();
     }
 
     private void savePreferences(){
@@ -91,7 +95,7 @@ public class LocationFragment extends Fragment {
         }
     }
 
-    private void checkLocationEnable(){
+    private void checkLocationWidgetEnable(){
         if (mCityNameEdit.getText().toString().equals("")){
             mLocateCheck.setVisibility(View.GONE);
             mLocateCheck.setChecked(false);

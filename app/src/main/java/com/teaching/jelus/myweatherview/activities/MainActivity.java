@@ -2,7 +2,10 @@ package com.teaching.jelus.myweatherview.activities;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
@@ -30,7 +33,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private final String CITY_NAME = "city_name";
     private FragmentManager mFragmentManager;
-    private FragmentTransaction mFragmentTransaction;
     private ProgressFragment mProgressFragment;
     private WeatherFragment mWeatherFragment;
     private LocationFragment mLocationFragment;
@@ -48,13 +50,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.container);
         mPool = (ExecutorService) getLastCustomNonConfigurationInstance();
         if (mPool == null) {
-            mFragmentManager = getSupportFragmentManager();
-            mFragmentTransaction = mFragmentManager.beginTransaction();
             mProgressFragment = new ProgressFragment();
             mWeatherFragment = new WeatherFragment();
             mLocationFragment = new LocationFragment();
-            mFragmentTransaction.add(R.id.container, mProgressFragment);
-            mFragmentTransaction.commit();
+            mFragmentManager = getSupportFragmentManager();
+            replaceFragment(mProgressFragment, false);
             mPreferences = getSharedPreferences("preferences", Context.MODE_PRIVATE);
             preferCityName = mPreferences.getString(CITY_NAME, "");
             mPool = MyApp.getPool();
@@ -65,7 +65,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        EventBus.getDefault().register(this);
+        if (!EventBus.getDefault().isRegistered(this)) {
+            EventBus.getDefault().register(this);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 
     @Override
@@ -92,9 +99,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         if (mProgressFragment != null && mProgressFragment.isAdded()){
-            mItemLocation.setVisible(false);
-            mItemUpdate.setVisible(false);
-            mItemBack.setVisible(false);
+            menuItemsVisibilitySettings(false, false, false);
         }
         return super.onPrepareOptionsMenu(menu);
     }
@@ -102,9 +107,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         if (mLocationFragment.isAdded()){
-            mItemLocation.setVisible(true);
-            mItemUpdate.setVisible(true);
-            mItemBack.setVisible(false);
+            menuItemsVisibilitySettings(true, true, false);
         }
         super.onBackPressed();
     }
@@ -112,30 +115,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        mFragmentTransaction = mFragmentManager.beginTransaction();
         switch (id){
             case R.id.menu_item_location:
-                mFragmentTransaction.addToBackStack(null);
-                mFragmentTransaction.replace(R.id.container, mLocationFragment);
-                mFragmentTransaction.commit();
-                mItemLocation.setVisible(false);
-                mItemUpdate.setVisible(false);
-                mItemBack.setVisible(true);
+                replaceFragment(mLocationFragment, true);
+                menuItemsVisibilitySettings(false, false, true);
                 return true;
             case R.id.menu_item_update:
-                mFragmentTransaction.replace(R.id.container, mProgressFragment);
-                mFragmentTransaction.commit();
-                mItemLocation.setVisible(false);
-                mItemUpdate.setVisible(false);
-                mItemBack.setVisible(false);
-                receiveData(null);
+                replaceFragment(mProgressFragment, true);
+                menuItemsVisibilitySettings(false, false, false);
+                preferCityName = mPreferences.getString(CITY_NAME, "");
+                receiveData(preferCityName);
                 return true;
             case R.id.menu_item_back:
-                mFragmentTransaction.replace(R.id.container, mWeatherFragment);
-                mFragmentTransaction.commit();
-                mItemLocation.setVisible(true);
-                mItemUpdate.setVisible(true);
-                mItemBack.setVisible(false);
+                replaceFragment(mWeatherFragment, false);
+                menuItemsVisibilitySettings(true, true, false);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -146,37 +139,53 @@ public class MainActivity extends AppCompatActivity {
     public void onMessageEvent(DataEvent data) {
         switch (data.getMessageType()){
             case "Receive Data":
-                mItemLocation.setVisible(true);
-                mItemUpdate.setVisible(true);
-                mItemBack.setVisible(false);
-                mFragmentTransaction = mFragmentManager.beginTransaction();
-                mFragmentTransaction.replace(R.id.container, mWeatherFragment);
-                mFragmentTransaction.commit();
+                menuItemsVisibilitySettings(true, true, false);
+                replaceFragment(mWeatherFragment, false);
                 Toast.makeText(getApplicationContext(),
                         data.getMessage(),
                         Toast.LENGTH_LONG).show();
                 break;
             case "Update request":
-                mFragmentTransaction = mFragmentManager.beginTransaction();
-                mFragmentTransaction.replace(R.id.container, mProgressFragment);
-                mFragmentTransaction.commit();
-                mItemLocation.setVisible(false);
-                mItemUpdate.setVisible(false);
-                mItemBack.setVisible(false);
+                replaceFragment(mProgressFragment, false);
+                menuItemsVisibilitySettings(false, false, false);
                 receiveData(data.getMessage());
                 break;
         }
     }
 
     private void receiveData(String cityName) {
-        if (MyApp.isConnect()) {
+        if (isConnect()) {
             mPool = Executors.newCachedThreadPool();
-            mPool.submit(new ReceivingDataTask(cityName));
+            mPool.submit(new ReceivingDataTask(getApplicationContext(), cityName));
             mPool.shutdown();
         } else {
             Toast.makeText(getApplicationContext(), "No internet connection", Toast.LENGTH_SHORT).show();
         }
         Log.d(TAG, "receiveData method completed");
+    }
+
+    private void replaceFragment(Fragment fragment, boolean addToBackStack){
+        FragmentTransaction fragmentTransaction = mFragmentManager.beginTransaction();
+        if (addToBackStack){
+            fragmentTransaction.addToBackStack(null);
+        }
+        fragmentTransaction.replace(R.id.container, fragment);
+        fragmentTransaction.commit();
+    }
+
+    private void menuItemsVisibilitySettings(boolean itemLocationVisible,
+                                             boolean itemUpdateVisible,
+                                             boolean itemBackVisible){
+        mItemLocation.setVisible(itemLocationVisible);
+        mItemUpdate.setVisible(itemUpdateVisible);
+        mItemBack.setVisible(itemBackVisible);
+    }
+
+    private boolean isConnect(){
+        ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext()
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnectedOrConnecting();
     }
 
 }

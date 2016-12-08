@@ -1,6 +1,7 @@
 package com.teaching.jelus.myweatherview.tasks;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,7 +9,6 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.teaching.jelus.myweatherview.DataEvent;
-import com.teaching.jelus.myweatherview.MyApp;
 import com.teaching.jelus.myweatherview.helpers.DatabaseHelper;
 import com.teaching.jelus.myweatherview.helpers.LocationHelper;
 
@@ -25,15 +25,18 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.CITY_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.ID_COLUMN;
+
 public class ReceivingDataTask implements Runnable {
     private static final String TAG = ReceivingDataTask.class.getSimpleName();
-    private final String BEGINNING_URL = "http://api.openweathermap.org/data/2.5/";
-    private final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
     private final String mCityName;
     private LocationHelper mLocationHelper;
     private DatabaseHelper mDatabaseHelper;
+    private Context mContext;
 
-    public ReceivingDataTask(String cityName) {
+    public ReceivingDataTask(Context context, String cityName) {
+        mContext = context;
         mCityName = cityName;
     }
 
@@ -41,16 +44,14 @@ public class ReceivingDataTask implements Runnable {
     public void run() {
         try {
             Looper.prepare();
-            mDatabaseHelper = new DatabaseHelper(MyApp.getAppContext());
-            mLocationHelper = new LocationHelper(MyApp.getAppContext());
-            String currentWeatherStringData = getDataOnRequest("weather/");
-            String forecastStringData = getDataOnRequest("forecast/daily/");
-            JSONObject currentWeatherJsonData = new JSONObject(currentWeatherStringData);
-            JSONObject forecastJsonData = new JSONObject(forecastStringData);
-            if (isDataCorrect(currentWeatherJsonData) && isDataCorrect(forecastJsonData)) {
-                mDatabaseHelper.deleteAll();
-                currentWeatherDataInDatabase(currentWeatherJsonData);
-                forecastInDatabase(forecastJsonData);
+            mDatabaseHelper = new DatabaseHelper(mContext);
+            mLocationHelper = new LocationHelper(mContext);
+            JSONObject currWeatherJsonData = getJsonByUrl("weather/");
+            JSONObject forecastJsonData = getJsonByUrl("forecast/daily/");
+            mLocationHelper.stop();
+            if (isDataCorrect(currWeatherJsonData) && isDataCorrect(forecastJsonData)) {
+                saveCurrWeatherDataInDb(currWeatherJsonData);
+                saveForecastDataInDb(forecastJsonData);
                 mDatabaseHelper.showDataInLog();
                 EventBus.getDefault().post(new DataEvent("Receive Data",
                         "Data successfully updated"));
@@ -63,84 +64,95 @@ public class ReceivingDataTask implements Runnable {
             e.printStackTrace();
             EventBus.getDefault().post(new DataEvent("Receive Data",
                     "Receiving data error"));
+            mLocationHelper.stop();
             mDatabaseHelper.close();
         }
     }
 
-    private String getDataOnRequest(String requestType) throws Exception {
-        double latitude = mLocationHelper.getLatitude();
-        double longitude = mLocationHelper.getLongitude();
-        String coordStr = "?lat=" + latitude + "&lon=" + longitude;
-        Log.d(TAG, "Current location latitude: " + latitude + "; longitude: " + longitude);
+    private JSONObject getJsonByUrl(String requestType) throws Exception {
+        final String BEGINNING_URL = "http://api.openweathermap.org/data/2.5/";
+        final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
         StringBuilder compositeUrl = new StringBuilder(BEGINNING_URL + requestType);
         if (!mCityName.equals("")){
             compositeUrl.append("?q=" + mCityName);
         } else {
-            compositeUrl.append(coordStr);
+            double latitude = mLocationHelper.getLatitude();
+            double longitude = mLocationHelper.getLongitude();
+            String coordinateStr = "?lat=" + latitude + "&lon=" + longitude;
+            compositeUrl.append(coordinateStr);
         }
         compositeUrl.append("&appid=" + APP_ID);
         compositeUrl.append("&units=metric");
         Log.d(TAG, "Composite URL: " + compositeUrl.toString());
         URL url = new URL(compositeUrl.toString());
-        String result = getStringFromUrl(url);
-        mLocationHelper.stop();
+        String str = getStringFromUrl(url);
+        JSONObject jsonObject = new JSONObject(str);
         Log.d(TAG, "this method with request type " + requestType + " worked");
-        return result;
+        return jsonObject;
     }
 
-    private void currentWeatherDataInDatabase(JSONObject jsonObject) throws Exception{
+    private void saveCurrWeatherDataInDb(JSONObject jsonObject) throws Exception{
+        final int CURR_RECORD_ID = 1;
+        final int SINGLE_POSITION = 0;
         String cityName = jsonObject.getString("name");
         JSONObject main = jsonObject.getJSONObject("main");
-        int temperatureMin = (int) Math.round(main.getDouble("temp_min"));
-        int temperatureMax = (int) Math.round(main.getDouble("temp_max"));
+        int tempMin = (int) Math.round(main.getDouble("temp_min"));
+        int tempMax = (int) Math.round(main.getDouble("temp_max"));
         JSONArray weatherArray = jsonObject.getJSONArray("weather");
-        JSONObject weather = (JSONObject) weatherArray.get(0);
-        String weatherDescription = weather.getString("description");
-        long dateTime = jsonObject.getLong("dt");
+        JSONObject weather = (JSONObject) weatherArray.get(SINGLE_POSITION);
+        String description = weather.getString("description");
+        long date = jsonObject.getLong("dt");
         String iconCode = weather.getString("icon");
         byte[] image = downloadImage(iconCode);
-        SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(DatabaseHelper.CITY_COLUMN, cityName);
-        values.put(DatabaseHelper.TEMPERATURE_MIN_COLUMN, temperatureMin);
-        values.put(DatabaseHelper.TEMPERATURE_MAX_COLUMN, temperatureMax);
-        values.put(DatabaseHelper.WEATHER_COLUMN, weatherDescription);
-        values.put(DatabaseHelper.DATETIME_COLUMN, dateTime);
-        values.put(DatabaseHelper.IMAGE_COLUMN, image);
-        //TODO Need add update DB method and entry checked
-        db.insert(DatabaseHelper.TABLE_NAME, null, values);
-        Log.d(TAG, "currentWeatherDataInDatabase method worked");
+        updateTableRow(CURR_RECORD_ID, cityName, tempMin, tempMax, description, date, image);
+        Log.d(TAG, "saveCurrWeatherDataInDb method worked");
     }
 
-    private void forecastInDatabase(JSONObject jsonObject) throws Exception{
+    private void saveForecastDataInDb(JSONObject jsonObject) throws Exception{
+        final int SINGLE_POSITION = 0;
+        int currRecordId;
         JSONArray list = jsonObject.getJSONArray("list");
         for (int i = 0; i < list.length(); i++)
         {
             JSONObject city = jsonObject.getJSONObject("city");
             String cityName = city.getString("name");
-            JSONObject item = (JSONObject) list.get(i);
-            JSONObject temp = item.getJSONObject("temp");
-            int temperatureMin = (int) Math.round(temp.getDouble("min"));
-            int temperatureMax = (int) Math.round(temp.getDouble("max"));
-            JSONArray weatherArray = item.getJSONArray("weather");
-            JSONObject weather = (JSONObject) weatherArray.get(0);
-            String weatherDescription = weather.getString("description");
-            long dateTime = item.getLong("dt");
+            JSONObject listItem = (JSONObject) list.get(i);
+            JSONObject temp = listItem.getJSONObject("temp");
+            int tempMin = (int) Math.round(temp.getDouble("min"));
+            int tempMax = (int) Math.round(temp.getDouble("max"));
+            JSONArray weatherArray = listItem.getJSONArray("weather");
+            JSONObject weather = (JSONObject) weatherArray.get(SINGLE_POSITION);
+            String description = weather.getString("description");
+            long date = listItem.getLong("dt");
             String iconCode = weather.getString("icon");
             byte[] image = downloadImage(iconCode);
-            SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
-            ContentValues values = new ContentValues();
-            values.put(DatabaseHelper.CITY_COLUMN, cityName);
-            values.put(DatabaseHelper.TEMPERATURE_MIN_COLUMN, temperatureMin);
-            values.put(DatabaseHelper.TEMPERATURE_MAX_COLUMN, temperatureMax);
-            values.put(DatabaseHelper.WEATHER_COLUMN, weatherDescription);
-            values.put(DatabaseHelper.DATETIME_COLUMN, dateTime);
-            values.put(DatabaseHelper.IMAGE_COLUMN, image);
-            //TODO Need add update DB method and entry checked
-            db.insert(DatabaseHelper.TABLE_NAME, null, values);
-            //db.update(DatabaseHelper.TABLE_NAME, values, BaseColumns._ID + " = 2", null);
+            currRecordId = i + 2;
+            updateTableRow(currRecordId, cityName, tempMin, tempMax, description, date, image);
         }
-        Log.d(TAG, "forecastInDatabase method worked");
+        Log.d(TAG, "saveForecastDataInDb method worked");
+    }
+
+    private void updateTableRow(int id,
+                                String cityName,
+                                int tempMin,
+                                int tempMax,
+                                String description,
+                                long date,
+                                byte[] image){
+        SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(ID_COLUMN, id);
+        values.put(CITY_COLUMN, cityName);
+        values.put(DatabaseHelper.TEMPERATURE_MIN_COLUMN, tempMin);
+        values.put(DatabaseHelper.TEMPERATURE_MAX_COLUMN, tempMax);
+        values.put(DatabaseHelper.DESCRIPTION_COLUMN, description);
+        values.put(DatabaseHelper.DATE_COLUMN, date);
+        values.put(DatabaseHelper.IMAGE_COLUMN, image);
+        if (mDatabaseHelper.isRecordExists(id)){
+            db.update(DatabaseHelper.TABLE_NAME, values, ID_COLUMN + " = " + id, null);
+        } else {
+            db.insert(DatabaseHelper.TABLE_NAME, null, values);
+        }
     }
 
     private String getStringFromUrl(URL url) throws IOException {
@@ -162,9 +174,9 @@ public class ReceivingDataTask implements Runnable {
     }
 
     private byte[] downloadImage(String icon){
-        String url = "http://openweathermap.org/img/w/" + icon + ".png";
+        final String URL = "http://openweathermap.org/img/w/" + icon + ".png";
         try {
-            InputStream in = new java.net.URL(url).openStream();
+            InputStream in = new java.net.URL(URL).openStream();
             Bitmap bitmap = BitmapFactory.decodeStream(in);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
@@ -178,8 +190,9 @@ public class ReceivingDataTask implements Runnable {
     }
 
     private boolean isDataCorrect(JSONObject data) throws JSONException {
+        final int OK_STATUS_CODE = 200;
         int cod = data.getInt("cod");
-        if (cod == 200){
+        if (cod == OK_STATUS_CODE){
             return true;
         }
         return false;

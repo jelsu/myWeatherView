@@ -3,42 +3,42 @@ package com.teaching.jelus.myweatherview;
 import android.graphics.Bitmap;
 
 public class ForecastData {
-    private int temperatureMin;
-    private int temperatureMax;
-    private String weatherDescription;
+    private int tempMin;
+    private int tempMax;
+    private String description;
     private String data;
     private Bitmap image;
 
-    public ForecastData(int temperatureMin, int temperatureMax, String weatherDescription, String data, Bitmap image) {
-        this.temperatureMin = temperatureMin;
-        this.temperatureMax = temperatureMax;
-        this.weatherDescription = weatherDescription;
+    public ForecastData(int tempMin, int tempMax, String description, String data, Bitmap image) {
+        this.tempMin = tempMin;
+        this.tempMax = tempMax;
+        this.description = description;
         this.data = data;
         this.image = image;
     }
 
-    public int getTemperatureMin() {
-        return temperatureMin;
+    public int getTempMin() {
+        return tempMin;
     }
 
-    public void setTemperatureMin(int temperatureMin) {
-        this.temperatureMin = temperatureMin;
+    public void setTempMin(int tempMin) {
+        this.tempMin = tempMin;
     }
 
-    public int getTemperatureMax() {
-        return temperatureMax;
+    public int getTempMax() {
+        return tempMax;
     }
 
-    public void setTemperatureMax(int temperatureMax) {
-        this.temperatureMax = temperatureMax;
+    public void setTempMax(int tempMax) {
+        this.tempMax = tempMax;
     }
 
-    public String getWeatherDescription() {
-        return weatherDescription;
+    public String getDescription() {
+        return description;
     }
 
-    public void setWeatherDescription(String weatherDescription) {
-        this.weatherDescription = weatherDescription;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getData() {

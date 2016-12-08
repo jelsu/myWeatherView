@@ -9,15 +9,16 @@ import android.util.Log;
 
 public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
     private static final String TAG = DatabaseHelper.class.getSimpleName();
-    public static final String DATABASE_NAME = "mydatabase";
+    public static final String DATABASE_NAME = "db";
     public static final int DATABASE_VERSION = 4;
     public static final String TABLE_NAME = "weather";
+    public static final String ID_COLUMN = BaseColumns._ID;
     public static final String CITY_COLUMN = "city";
     public static final String TEMPERATURE_MIN_COLUMN = "temperature_min";
     public static final String TEMPERATURE_MAX_COLUMN = "temperature_max";
-    public static final String DATETIME_COLUMN = "datetime";
-    public static final String WEATHER_COLUMN = "weather";
-    public static final String IMAGE_COLUMN = "icon";
+    public static final String DATE_COLUMN = "datetime";
+    public static final String DESCRIPTION_COLUMN = "weather";
+    public static final String IMAGE_COLUMN = "image";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -25,14 +26,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String CREATE_TABLE = "create table "
+        final String CREATE_TABLE = "create table "
                 + TABLE_NAME
-                + " (" + BaseColumns._ID + " integer primary key autoincrement, "
+                + " (" + ID_COLUMN + " integer primary key, "
                 + CITY_COLUMN + " text not null, "
                 + TEMPERATURE_MIN_COLUMN + " integer not null, "
                 + TEMPERATURE_MAX_COLUMN + " integer not null, "
-                + WEATHER_COLUMN + " text not null,"
-                + DATETIME_COLUMN + " integer not null,"
+                + DESCRIPTION_COLUMN + " text not null,"
+                + DATE_COLUMN + " integer not null,"
                 + IMAGE_COLUMN + " blob not null);";
         db.execSQL(CREATE_TABLE);
         Log.d(TAG, "Create new table database");
@@ -40,35 +41,30 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+        final String DROP_TABLE = "DROP TABLE IF EXISTS " + TABLE_NAME;
+        db.execSQL(DROP_TABLE);
         onCreate(db);
         Log.d(TAG, "Update " + oldVersion + " version to " + newVersion + " version");
-    }
-
-    public void deleteAll(){
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_NAME, null, null);
-        db.close();
     }
 
     public void showDataInLog(){
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
         if (cursor.moveToFirst()){
-            int idColIndex = cursor.getColumnIndex(BaseColumns._ID);
+            int idColIndex = cursor.getColumnIndex(ID_COLUMN);
             int cityColIndex = cursor.getColumnIndex(CITY_COLUMN);
-            int temperatureMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
-            int temperatureMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
-            int weatherColIndex = cursor.getColumnIndex(WEATHER_COLUMN);
-            int dateTimeColIndex = cursor.getColumnIndex(DATETIME_COLUMN);
+            int tempMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
+            int tempMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
+            int descriptionColIndex = cursor.getColumnIndex(DESCRIPTION_COLUMN);
+            int dateColIndex = cursor.getColumnIndex(DATE_COLUMN);
             int imageColIndex = cursor.getColumnIndex(IMAGE_COLUMN);
             do {
                 Log.d(TAG, "id = " + cursor.getInt(idColIndex)
                         + "; City = " + cursor.getString(cityColIndex)
-                        + "; temperature_min = " + cursor.getInt(temperatureMinColIndex)
-                        + "; temperature_max = " + cursor.getInt(temperatureMaxColIndex)
-                        + "; weather = " + cursor.getString(weatherColIndex)
-                        + "; dateTime = " + cursor.getLong(dateTimeColIndex)
+                        + "; temperature_min = " + cursor.getInt(tempMinColIndex)
+                        + "; temperature_max = " + cursor.getInt(tempMaxColIndex)
+                        + "; description = " + cursor.getString(descriptionColIndex)
+                        + "; date = " + cursor.getLong(dateColIndex)
                         + "; imageBlob = " + cursor.getBlob(imageColIndex));
             } while (cursor.moveToNext());
         } else {
@@ -78,14 +74,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
         db.close();
     }
 
-    public int getCountRows(){
-        int count;
+    public boolean isRecordExists(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
-        cursor.moveToFirst();
-        count = cursor.getCount();
+        final String QUERY = "Select * from " + TABLE_NAME + " where " + ID_COLUMN + " = " + id;
+        Cursor cursor = db.rawQuery(QUERY, null);
+        if(cursor.getCount() <= 0){
+            cursor.close();
+            return false;
+        }
         cursor.close();
-        db.close();
-        return count;
+        return true;
     }
 }

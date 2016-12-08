@@ -27,22 +27,20 @@ import java.util.Date;
 import java.util.Locale;
 
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.CITY_COLUMN;
-import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.DATETIME_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.DATE_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.IMAGE_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TABLE_NAME;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MAX_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
-import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.WEATHER_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.DESCRIPTION_COLUMN;
 
 public class WeatherFragment extends Fragment {
     private static final String TAG = WeatherFragment.class.getSimpleName();
-    private TextView mTemperatureTextView;
+    private TextView mTempTextView;
     private TextView mCityNameTextView;
-    private TextView mWeatherDescriptionTextView;
+    private TextView mDescriptionTextView;
     private ImageView mWeatherImageView;
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
-    private RecyclerView.LayoutManager mLayoutManager;
     private TextView mDateTimeTextView;
     private DatabaseHelper mDatabaseHelper;
 
@@ -51,14 +49,13 @@ public class WeatherFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_weather, container, false);
         mCityNameTextView = (TextView) view.findViewById(R.id.text_city_name);
-        mTemperatureTextView = (TextView) view.findViewById(R.id.text_temperature);
-        mWeatherDescriptionTextView = (TextView) view.findViewById(R.id.text_weather_description);
+        mTempTextView = (TextView) view.findViewById(R.id.text_temperature);
+        mDescriptionTextView = (TextView) view.findViewById(R.id.text_weather_description);
         mDateTimeTextView = (TextView) view.findViewById(R.id.text_weather_date);
         mWeatherImageView = (ImageView) view.findViewById(R.id.image_weather);
         mRecyclerView = (RecyclerView) view.findViewById(R.id.recycler_forecast);
-        mLayoutManager = new LinearLayoutManager(getActivity());
-        mRecyclerView.setLayoutManager(mLayoutManager);
-        Log.d(TAG, "onCreateView completed");
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        mRecyclerView.setLayoutManager(layoutManager);
         return view;
     }
 
@@ -72,38 +69,39 @@ public class WeatherFragment extends Fragment {
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                //TODO realize update via handler
                 mDatabaseHelper = new DatabaseHelper(getActivity());
                 SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
-                showCurrentWeatherData(db);
-                showForecastData(db);
-                Log.d(TAG, "UI fill completed");
+                updateCurrWeatherWidgets(db);
+                updateForecastWidgets(db);
                 mDatabaseHelper.close();
+                Log.d(TAG, "update UI completed");
             }
         });
     }
 
-    private void showCurrentWeatherData(SQLiteDatabase db) {
+    private void updateCurrWeatherWidgets(SQLiteDatabase db) {
         Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
         if (cursor.moveToFirst()){
             int cityColIndex = cursor.getColumnIndex(CITY_COLUMN);
-            int temperatureMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
-            int temperatureMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
-            int weatherColIndex = cursor.getColumnIndex(WEATHER_COLUMN);
-            int dateTimeColIndex = cursor.getColumnIndex(DATETIME_COLUMN);
+            int tempMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
+            int tempMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
+            int descriptionColIndex = cursor.getColumnIndex(DESCRIPTION_COLUMN);
+            int dateColIndex = cursor.getColumnIndex(DATE_COLUMN);
             int imageColIndex = cursor.getColumnIndex(IMAGE_COLUMN);
             String cityName = cursor.getString(cityColIndex);
-            int temperatureMin = cursor.getInt(temperatureMinColIndex);
-            int temperatureMax = cursor.getInt(temperatureMaxColIndex);
-            String averageTemperature = String.valueOf(Math.round((double) (temperatureMax
-                    + temperatureMin) / 2));
-            String weatherDescription = cursor.getString(weatherColIndex);
-            long unixDate = cursor.getLong(dateTimeColIndex);
+            int tempMin = cursor.getInt(tempMinColIndex);
+            int tempMax = cursor.getInt(tempMaxColIndex);
+            String averageTemp = String.valueOf(Math.round((double) (tempMax
+                    + tempMin) / 2));
+            String description = cursor.getString(descriptionColIndex);
+            long unixDate = cursor.getLong(dateColIndex);
             long lastUpdateTime = getDifferenceBetweenDates(unixDate * 1000);
             String lastUpdateStr = getLastUpdateString(lastUpdateTime);
             Bitmap image = convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
             mCityNameTextView.setText(cityName);
-            mTemperatureTextView.setText(averageTemperature + "°");
-            mWeatherDescriptionTextView.setText(weatherDescription);
+            mTempTextView.setText(averageTemp + "°");
+            mDescriptionTextView.setText(description);
             mDateTimeTextView.setText(lastUpdateStr);
             mWeatherImageView.setImageBitmap(image);
         } else {
@@ -112,24 +110,27 @@ public class WeatherFragment extends Fragment {
         cursor.close();
     }
 
-    private void showForecastData(SQLiteDatabase db) {
+    private void updateForecastWidgets(SQLiteDatabase db) {
         ArrayList<ForecastData> forecastArrayList = new ArrayList<>();
         Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
         if (cursor.moveToFirst()){
             cursor.moveToNext();
             do {
-                int temperatureMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
-                int temperatureMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
-                int weatherColIndex = cursor.getColumnIndex(WEATHER_COLUMN);
-                int dateTimeColIndex = cursor.getColumnIndex(DATETIME_COLUMN);
+                int tempMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
+                int tempMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
+                int descriptionColIndex = cursor.getColumnIndex(DESCRIPTION_COLUMN);
+                int dateColIndex = cursor.getColumnIndex(DATE_COLUMN);
                 int imageColIndex = cursor.getColumnIndex(IMAGE_COLUMN);
-                int temperatureMin = cursor.getInt(temperatureMinColIndex);
-                int temperatureMax = cursor.getInt(temperatureMaxColIndex);
-                String weatherDescription = cursor.getString(weatherColIndex);
-                String date = getStringDate(convertUnixTimeToDate(cursor.getLong(dateTimeColIndex)));
+                int tempMin = cursor.getInt(tempMinColIndex);
+                int tempMax = cursor.getInt(tempMaxColIndex);
+                String description = cursor.getString(descriptionColIndex);
+                String date = getStringDate(convertUnixTimeToDate(cursor.getLong(dateColIndex)));
                 Bitmap image = convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
-                ForecastData forecastData =
-                        new ForecastData(temperatureMin, temperatureMax, weatherDescription, date, image);
+                ForecastData forecastData = new ForecastData(tempMin,
+                        tempMax,
+                        description,
+                        date,
+                        image);
                 forecastArrayList.add(forecastData);
             }
             while (cursor.moveToNext());
@@ -137,8 +138,8 @@ public class WeatherFragment extends Fragment {
             Log.d(TAG, "Database is null");
         }
         cursor.close();
-        mAdapter = new RecyclerAdapter(forecastArrayList);
-        mRecyclerView.setAdapter(mAdapter);
+        RecyclerView.Adapter adapter = new RecyclerAdapter(forecastArrayList);
+        mRecyclerView.setAdapter(adapter);
     }
 
     private Bitmap convertByteArrayToBitmap(byte[] data){

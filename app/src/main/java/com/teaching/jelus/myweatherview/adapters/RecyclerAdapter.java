@@ -16,17 +16,17 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
     private ArrayList<ForecastData> mDataset;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        private TextView mForecastTemperatureTextView;
-        private TextView mForecastWeatherDescriptionTextView;
+        private TextView mForecastTempeTextView;
+        private TextView mForecastDescriptionTextView;
         private TextView mForecastDataTextView;
         private ImageView mForecastImageView;
 
 
         public ViewHolder(View v) {
             super(v);
-            mForecastTemperatureTextView = (TextView) v.findViewById(
+            mForecastTempeTextView = (TextView) v.findViewById(
                     R.id.text_forecast_temperature);
-            mForecastWeatherDescriptionTextView = (TextView) v.findViewById(
+            mForecastDescriptionTextView = (TextView) v.findViewById(
                     R.id.text_forecast_weather_description);
             mForecastDataTextView = (TextView) v.findViewById(
                     R.id.text_forecast_date);
@@ -49,11 +49,11 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         ForecastData forecastData = mDataset.get(position);
-        holder.mForecastTemperatureTextView.setText(String.valueOf(forecastData.getTemperatureMax())
+        holder.mForecastTempeTextView.setText(String.valueOf(forecastData.getTempMax())
                 + "° / "
-                + String.valueOf(forecastData.getTemperatureMin())
+                + String.valueOf(forecastData.getTempMin())
                 + "°");
-        holder.mForecastWeatherDescriptionTextView.setText(forecastData.getWeatherDescription());
+        holder.mForecastDescriptionTextView.setText(forecastData.getDescription());
         holder.mForecastDataTextView.setText(forecastData.getData());
         holder.mForecastImageView.setImageBitmap(forecastData.getImage());
     }
