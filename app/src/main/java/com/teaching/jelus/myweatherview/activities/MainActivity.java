@@ -2,8 +2,6 @@ package com.teaching.jelus.myweatherview.activities;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -16,9 +14,9 @@ import android.widget.Toast;
 
 import com.teaching.jelus.myweatherview.DataEvent;
 import com.teaching.jelus.myweatherview.MyApp;
+import com.teaching.jelus.myweatherview.NetworkUtils;
 import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.fragments.LocationFragment;
-import com.teaching.jelus.myweatherview.fragments.ProgressFragment;
 import com.teaching.jelus.myweatherview.fragments.WeatherFragment;
 import com.teaching.jelus.myweatherview.tasks.ReceivingDataTask;
 
@@ -33,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private final String CITY_NAME = "city_name";
     private FragmentManager mFragmentManager;
-    private ProgressFragment mProgressFragment;
+    //private ProgressFragment mProgressFragment;
     private WeatherFragment mWeatherFragment;
     private LocationFragment mLocationFragment;
     private MenuItem mItemLocation;
@@ -47,19 +45,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.container);
+        setContentView(R.layout.activity_main);
         mPool = (ExecutorService) getLastCustomNonConfigurationInstance();
-        if (mPool == null) {
-            mProgressFragment = new ProgressFragment();
-            mWeatherFragment = new WeatherFragment();
-            mLocationFragment = new LocationFragment();
-            mFragmentManager = getSupportFragmentManager();
-            replaceFragment(mProgressFragment, false);
-            mPreferences = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-            preferCityName = mPreferences.getString(CITY_NAME, "");
-            mPool = MyApp.getPool();
-            receiveData(preferCityName);
-        }
+        mFragmentManager = getSupportFragmentManager();
+       /* mProgressFragment = new ProgressFragment();*/
+        mWeatherFragment = new WeatherFragment();
+        mLocationFragment = new LocationFragment();
+        replaceFragment(mWeatherFragment, false);
+        mPreferences = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        preferCityName = mPreferences.getString(CITY_NAME, "");
+        mPool = MyApp.getPool();
+        receiveData(preferCityName);
     }
 
     @Override
@@ -76,10 +72,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onStop() {
         mPool.shutdown();
         EventBus.getDefault().unregister(this);
-        super.onDestroy();
+        super.onStop();
     }
 
     @Override
@@ -98,8 +94,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        if (mProgressFragment != null && mProgressFragment.isAdded()){
+        /*if (mProgressFragment != null && mProgressFragment.isAdded()){
             menuItemsVisibilitySettings(false, false, false);
+        }*/
+        if (mWeatherFragment != null && mWeatherFragment.isAdded()){
+            menuItemsVisibilitySettings(true, true, false);
+        }
+        if (mLocationFragment != null && mLocationFragment.isAdded()){
+            menuItemsVisibilitySettings(false, false, true);
         }
         return super.onPrepareOptionsMenu(menu);
     }
@@ -121,13 +123,14 @@ public class MainActivity extends AppCompatActivity {
                 menuItemsVisibilitySettings(false, false, true);
                 return true;
             case R.id.menu_item_update:
-                replaceFragment(mProgressFragment, true);
+                replaceFragment(mWeatherFragment, false);
                 menuItemsVisibilitySettings(false, false, false);
                 preferCityName = mPreferences.getString(CITY_NAME, "");
                 receiveData(preferCityName);
                 return true;
             case R.id.menu_item_back:
                 replaceFragment(mWeatherFragment, false);
+                receiveData(preferCityName);
                 menuItemsVisibilitySettings(true, true, false);
                 return true;
             default:
@@ -137,16 +140,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(DataEvent data) {
-        switch (data.getMessageType()){
-            case "Receive Data":
+        switch (data.getType()){
+            case RECEIVE_DATA:
                 menuItemsVisibilitySettings(true, true, false);
-                replaceFragment(mWeatherFragment, false);
+                /*replaceFragment(mWeatherFragment, false);*/
                 Toast.makeText(getApplicationContext(),
                         data.getMessage(),
                         Toast.LENGTH_LONG).show();
                 break;
-            case "Update request":
-                replaceFragment(mProgressFragment, false);
+            case UPDATE_DATA:
+                /*replaceFragment(mProgressFragment, false);*/
                 menuItemsVisibilitySettings(false, false, false);
                 receiveData(data.getMessage());
                 break;
@@ -154,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void receiveData(String cityName) {
-        if (isConnect()) {
+        if (NetworkUtils.isConnected(getApplicationContext())) {
             mPool = Executors.newCachedThreadPool();
             mPool.submit(new ReceivingDataTask(getApplicationContext(), cityName));
             mPool.shutdown();
@@ -180,13 +183,5 @@ public class MainActivity extends AppCompatActivity {
         mItemUpdate.setVisible(itemUpdateVisible);
         mItemBack.setVisible(itemBackVisible);
     }
-
-    private boolean isConnect(){
-        ConnectivityManager connectivityManager = (ConnectivityManager) getApplicationContext()
-                .getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return networkInfo != null && networkInfo.isConnectedOrConnecting();
-    }
-
 }
 

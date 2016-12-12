@@ -13,13 +13,20 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.teaching.jelus.myweatherview.DataEvent;
 import com.teaching.jelus.myweatherview.ForecastData;
 import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.adapters.RecyclerAdapter;
 import com.teaching.jelus.myweatherview.helpers.DatabaseHelper;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -28,11 +35,11 @@ import java.util.Locale;
 
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.CITY_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.DATE_COLUMN;
+import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.DESCRIPTION_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.IMAGE_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TABLE_NAME;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MAX_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
-import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.DESCRIPTION_COLUMN;
 
 public class WeatherFragment extends Fragment {
     private static final String TAG = WeatherFragment.class.getSimpleName();
@@ -43,11 +50,15 @@ public class WeatherFragment extends Fragment {
     private RecyclerView mRecyclerView;
     private TextView mDateTimeTextView;
     private DatabaseHelper mDatabaseHelper;
+    private FrameLayout mProgressFragment;
+    private RelativeLayout mDataFragment;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_weather, container, false);
+        mProgressFragment = (FrameLayout) view.findViewById(R.id.fragment_progress);
+        mDataFragment = (RelativeLayout) view.findViewById(R.id.fragment_data);
         mCityNameTextView = (TextView) view.findViewById(R.id.text_city_name);
         mTempTextView = (TextView) view.findViewById(R.id.text_temperature);
         mDescriptionTextView = (TextView) view.findViewById(R.id.text_weather_description);
@@ -62,7 +73,16 @@ public class WeatherFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        updateUI();
+        if (!EventBus.getDefault().isRegistered(this)) {
+            EventBus.getDefault().register(this);
+        }
+    }
+
+    @Override
+    public void onStop() {
+        EventBus.getDefault().unregister(this);
+        super.onStop();
+        Log.d(TAG, "onStop()");
     }
 
     private void updateUI(){
@@ -78,6 +98,14 @@ public class WeatherFragment extends Fragment {
                 Log.d(TAG, "update UI completed");
             }
         });
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(DataEvent data) {
+        updateUI();
+        mProgressFragment.setVisibility(View.GONE);
+        mDataFragment.setVisibility(View.VISIBLE);
+        Log.d(TAG, "RECEIVE_DATA");
     }
 
     private void updateCurrWeatherWidgets(SQLiteDatabase db) {

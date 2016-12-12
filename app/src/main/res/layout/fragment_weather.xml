@@ -6,52 +6,76 @@
     android:layout_height="match_parent"
     tools:context="com.teaching.jelus.myweatherview.activities.MainActivity">
 
-    <TextView
-        style="@style/TemperatureTextStyle"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:text="@string/text_temperature"
-        android:id="@+id/text_temperature"/>
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                 xmlns:app="http://schemas.android.com/apk/res-auto"
+                 xmlns:tools="http://schemas.android.com/tools"
+                 android:id="@+id/fragment_progress"
+                 android:layout_width="match_parent"
+                 android:layout_height="match_parent"
+                 android:visibility="visible">
 
-    <TextView
-        style="@style/OtherTextStyle"
-        android:id="@+id/text_city_name"
-        android:textStyle="bold"
-        android:text="@string/text_city_name"
-        android:layout_below="@+id/text_temperature"/>
+        <com.github.ybq.android.spinkit.SpinKitView
+            android:id="@+id/spin_kit"
+            style="@style/SpinKitView.Large.ThreeBounce"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            app:SpinKit_Color="@color/colorBlueSky"/>
+    </FrameLayout>
 
-    <TextView
-        style="@style/OtherTextStyle"
-        android:id="@+id/text_weather_description"
-        android:text="@string/text_description"
-        android:layout_below="@+id/text_city_name"/>
-
-    <TextView
-        style="@style/OtherTextStyle"
-        android:id="@+id/text_weather_date"
-        android:text="@string/text_date"
-        android:layout_below="@+id/text_weather_description"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
-
-    <android.support.v7.widget.RecyclerView
+    <RelativeLayout
+        android:id="@+id/fragment_data"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/recycler_forecast"
-        android:layout_below="@id/text_weather_date"
-        android:layout_marginTop="10dp"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"/>
+        android:visibility="invisible">
 
-    <ImageView
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:id="@+id/image_weather"
-        android:src="@mipmap/ic_launcher"
-        tools:ignore="RtlHardcoded"
-        android:layout_marginLeft="10dp"
-        android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/text_temperature"
-        android:layout_toEndOf="@+id/text_temperature"/>
+        <TextView
+            android:id="@+id/text_temperature"
+            style="@style/TemperatureTextStyle"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:text="@string/text_temperature"/>
+
+        <ImageView
+            android:id="@+id/image_weather"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="10dp"
+            android:layout_toEndOf="@+id/text_temperature"
+            android:layout_toRightOf="@+id/text_temperature"
+            android:src="@mipmap/ic_launcher"
+            tools:ignore="RtlHardcoded"/>
+
+        <TextView
+            android:id="@+id/text_city_name"
+            style="@style/OtherTextStyle"
+            android:layout_below="@+id/text_temperature"
+            android:text="@string/text_city_name"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/text_weather_description"
+            style="@style/OtherTextStyle"
+            android:layout_below="@+id/text_city_name"
+            android:text="@string/text_description"/>
+
+        <TextView
+            android:id="@+id/text_weather_date"
+            style="@style/OtherTextStyle"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_below="@+id/text_weather_description"
+            android:text="@string/text_date"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/recycler_forecast"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/text_weather_date"
+            android:layout_marginTop="10dp"/>
+    </RelativeLayout>
 </RelativeLayout>

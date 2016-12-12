@@ -1,16 +1,16 @@
 package com.teaching.jelus.myweatherview;
 
 public class DataEvent {
-    private String mMessageType;
+    private MessageType mType;
     private String mMessage;
 
-    public DataEvent(String messageType, String message) {
-        mMessageType = messageType;
+    public DataEvent(MessageType type, String message) {
+        mType = type;
         mMessage = message;
     }
 
-    public String getMessageType() {
-        return mMessageType;
+    public MessageType getType() {
+        return mType;
     }
 
     public String getMessage() {

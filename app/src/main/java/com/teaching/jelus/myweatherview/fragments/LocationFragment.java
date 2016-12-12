@@ -19,6 +19,8 @@ import com.teaching.jelus.myweatherview.R;
 
 import org.greenrobot.eventbus.EventBus;
 
+import static com.teaching.jelus.myweatherview.MessageType.UPDATE_DATA;
+
 public class LocationFragment extends Fragment {
     private final String CITY_NAME = "city_name";
     private final String LOCATE = "locate";
@@ -43,8 +45,7 @@ public class LocationFragment extends Fragment {
                     mCityNameEdit.setText(trimmedCityName);
                     mCityNameEdit.setSelection(mCityNameEdit.getText().length());
                     if (!trimmedCityName.equals("")){
-                        EventBus.getDefault().post(new DataEvent("Update request",
-                                trimmedCityName));
+                        EventBus.getDefault().post(new DataEvent(UPDATE_DATA, trimmedCityName));
                     }
                     return true;
                 }

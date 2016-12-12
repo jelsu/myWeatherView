@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import static com.teaching.jelus.myweatherview.MessageType.RECEIVE_DATA;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.CITY_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.ID_COLUMN;
 
@@ -46,6 +47,7 @@ public class ReceivingDataTask implements Runnable {
             Looper.prepare();
             mDatabaseHelper = new DatabaseHelper(mContext);
             mLocationHelper = new LocationHelper(mContext);
+            mLocationHelper.start();
             JSONObject currWeatherJsonData = getJsonByUrl("weather/");
             JSONObject forecastJsonData = getJsonByUrl("forecast/daily/");
             mLocationHelper.stop();
@@ -53,16 +55,16 @@ public class ReceivingDataTask implements Runnable {
                 saveCurrWeatherDataInDb(currWeatherJsonData);
                 saveForecastDataInDb(forecastJsonData);
                 mDatabaseHelper.showDataInLog();
-                EventBus.getDefault().post(new DataEvent("Receive Data",
+                EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
                         "Data successfully updated"));
             } else {
-                EventBus.getDefault().post(new DataEvent("Receive Data",
+                EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
                         "Receiving data error"));
             }
             mDatabaseHelper.close();
         } catch (Exception e) {
             e.printStackTrace();
-            EventBus.getDefault().post(new DataEvent("Receive Data",
+            EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
                     "Receiving data error"));
             mLocationHelper.stop();
             mDatabaseHelper.close();

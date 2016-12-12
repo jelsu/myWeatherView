@@ -22,41 +22,9 @@ public class LocationHelper {
 
     public LocationHelper(Context context) {
         mContext = context;
-        mLocationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
-        mLocationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-            }
-
-            @Override
-            public void onStatusChanged(String s, int i, Bundle bundle) {
-            }
-
-            @Override
-            public void onProviderEnabled(String s) {
-            }
-
-            @Override
-            public void onProviderDisabled(String s) {
-            }
-        };
-        boolean isGPSEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        boolean isNetworkEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        if (!isGPSEnabled && !isNetworkEnabled) {
-            mContext.startActivity(new Intent(
-                    android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-        } else {
-            if (isGPSEnabled) {
-                choseLocationUpdate(mContext, LocationManager.GPS_PROVIDER);
-            } else {
-                choseLocationUpdate(mContext, LocationManager.NETWORK_PROVIDER);
-            }
-        }
-        latitude = mLocation.getLatitude();
-        longitude = mLocation.getLongitude();
     }
 
-    private void choseLocationUpdate(Context context, String provider) {
+    private void chooseLocationUpdate(String provider) {
         if (ActivityCompat.checkSelfPermission(
                 mContext,
                 Manifest.permission.ACCESS_FINE_LOCATION) !=
@@ -82,13 +50,39 @@ public class LocationHelper {
         mLocation = mLocationManager.getLastKnownLocation(provider);
     }
 
+    public void start(){
+        mLocationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
+        mLocationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+            }
 
-    public double getLatitude() {
-        return latitude;
-    }
+            @Override
+            public void onStatusChanged(String s, int i, Bundle bundle) {
+            }
 
-    public double getLongitude() {
-        return longitude;
+            @Override
+            public void onProviderEnabled(String s) {
+            }
+
+            @Override
+            public void onProviderDisabled(String s) {
+            }
+        };
+        boolean isGPSEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        boolean isNetworkEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        if (!isGPSEnabled && !isNetworkEnabled) {
+            mContext.startActivity(new Intent(
+                    android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+        } else {
+            if (isGPSEnabled) {
+                chooseLocationUpdate(LocationManager.GPS_PROVIDER);
+            } else {
+                chooseLocationUpdate(LocationManager.NETWORK_PROVIDER);
+            }
+        }
+        latitude = mLocation.getLatitude();
+        longitude = mLocation.getLongitude();
     }
 
     public void stop() {
@@ -110,5 +104,13 @@ public class LocationHelper {
             return;
         }
         mLocationManager.removeUpdates(mLocationListener);
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
     }
 }
