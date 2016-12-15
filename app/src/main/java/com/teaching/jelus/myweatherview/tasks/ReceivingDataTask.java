@@ -29,7 +29,7 @@ import static com.teaching.jelus.myweatherview.MessageType.RECEIVE_DATA;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.CITY_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.ID_COLUMN;
 
-public class ReceivingDataTask implements Runnable {
+public class ReceivingDataTask {
     private static final String TAG = ReceivingDataTask.class.getSimpleName();
     private final String mCityName;
     private LocationHelper mLocationHelper;
@@ -41,15 +41,21 @@ public class ReceivingDataTask implements Runnable {
         mCityName = cityName;
     }
 
-    @Override
-    public void run() {
+    public void method() {
         try {
-            Looper.prepare();
+            if (Looper.myLooper() == null)
+            {
+                Looper.prepare();
+            }
             mDatabaseHelper = new DatabaseHelper(mContext);
             mLocationHelper = new LocationHelper(mContext);
             mLocationHelper.start();
-            JSONObject currWeatherJsonData = getJsonByUrl("weather/");
-            JSONObject forecastJsonData = getJsonByUrl("forecast/daily/");
+            URL currWeatherUrl = getUrl("weather/");
+            URL forecastUrl = getUrl("forecast/daily/");
+            String currWeatherStr = getStringFromUrl(currWeatherUrl);
+            String forecastStr = getStringFromUrl(forecastUrl);
+            JSONObject currWeatherJsonData = getJsonFromStr(currWeatherStr);
+            JSONObject forecastJsonData = getJsonFromStr(forecastStr);
             mLocationHelper.stop();
             if (isDataCorrect(currWeatherJsonData) && isDataCorrect(forecastJsonData)) {
                 saveCurrWeatherDataInDb(currWeatherJsonData);
@@ -71,7 +77,7 @@ public class ReceivingDataTask implements Runnable {
         }
     }
 
-    private JSONObject getJsonByUrl(String requestType) throws Exception {
+    private URL getUrl(String requestType) throws Exception {
         final String BEGINNING_URL = "http://api.openweathermap.org/data/2.5/";
         final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
         StringBuilder compositeUrl = new StringBuilder(BEGINNING_URL + requestType);
@@ -86,11 +92,11 @@ public class ReceivingDataTask implements Runnable {
         compositeUrl.append("&appid=" + APP_ID);
         compositeUrl.append("&units=metric");
         Log.d(TAG, "Composite URL: " + compositeUrl.toString());
-        URL url = new URL(compositeUrl.toString());
-        String str = getStringFromUrl(url);
-        JSONObject jsonObject = new JSONObject(str);
-        Log.d(TAG, "this method with request type " + requestType + " worked");
-        return jsonObject;
+        return new URL(compositeUrl.toString());
+    }
+
+    private JSONObject getJsonFromStr(String str) throws JSONException {
+        return new JSONObject(str);
     }
 
     private void saveCurrWeatherDataInDb(JSONObject jsonObject) throws Exception{

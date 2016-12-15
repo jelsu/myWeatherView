@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -41,6 +42,7 @@ import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TABLE_NAME
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MAX_COLUMN;
 import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
 
+@SuppressWarnings("WrongConstant")
 public class WeatherFragment extends Fragment {
     private static final String TAG = WeatherFragment.class.getSimpleName();
     private TextView mTempTextView;
@@ -52,6 +54,14 @@ public class WeatherFragment extends Fragment {
     private DatabaseHelper mDatabaseHelper;
     private FrameLayout mProgressFragment;
     private RelativeLayout mDataFragment;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (!EventBus.getDefault().isRegistered(this)) {
+            EventBus.getDefault().register(this);
+        }
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -71,18 +81,9 @@ public class WeatherFragment extends Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        if (!EventBus.getDefault().isRegistered(this)) {
-            EventBus.getDefault().register(this);
-        }
-    }
-
-    @Override
-    public void onStop() {
+    public void onDestroy() {
         EventBus.getDefault().unregister(this);
-        super.onStop();
-        Log.d(TAG, "onStop()");
+        super.onDestroy();
     }
 
     private void updateUI(){
@@ -102,10 +103,22 @@ public class WeatherFragment extends Fragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(DataEvent data) {
-        updateUI();
-        mProgressFragment.setVisibility(View.GONE);
-        mDataFragment.setVisibility(View.VISIBLE);
-        Log.d(TAG, "RECEIVE_DATA");
+        switch (data.getType()) {
+            case RECEIVE_DATA:
+                updateUI();
+                mProgressFragment.setVisibility(View.GONE);
+                mDataFragment.setVisibility(View.VISIBLE);
+                break;
+            case UPDATE_DATA:
+                mProgressFragment.setVisibility(View.VISIBLE);
+                mDataFragment.setVisibility(View.GONE);
+                break;
+            case BACK:
+                updateUI();
+                mProgressFragment.setVisibility(View.GONE);
+                mDataFragment.setVisibility(View.VISIBLE);
+                break;
+        }
     }
 
     private void updateCurrWeatherWidgets(SQLiteDatabase db) {

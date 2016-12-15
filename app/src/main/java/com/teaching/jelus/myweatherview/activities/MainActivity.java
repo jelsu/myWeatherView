@@ -25,20 +25,21 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
+import static com.teaching.jelus.myweatherview.MessageType.BACK;
+import static com.teaching.jelus.myweatherview.MessageType.UPDATE_DATA;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private final String CITY_NAME = "city_name";
     private FragmentManager mFragmentManager;
-    //private ProgressFragment mProgressFragment;
     private WeatherFragment mWeatherFragment;
     private LocationFragment mLocationFragment;
     private MenuItem mItemLocation;
     private MenuItem mItemUpdate;
     private MenuItem mItemBack;
     private SharedPreferences mPreferences;
-    private String preferCityName;
+    private String mPreferCityName;
     private ExecutorService mPool;
 
     @Override
@@ -46,16 +47,14 @@ public class MainActivity extends AppCompatActivity {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mPool = (ExecutorService) getLastCustomNonConfigurationInstance();
         mFragmentManager = getSupportFragmentManager();
-       /* mProgressFragment = new ProgressFragment();*/
         mWeatherFragment = new WeatherFragment();
         mLocationFragment = new LocationFragment();
         replaceFragment(mWeatherFragment, false);
         mPreferences = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        preferCityName = mPreferences.getString(CITY_NAME, "");
+        mPreferCityName = mPreferences.getString(CITY_NAME, "");
         mPool = MyApp.getPool();
-        receiveData(preferCityName);
+        receiveData(mPreferCityName);
     }
 
     @Override
@@ -67,20 +66,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
-    @Override
     protected void onStop() {
-        mPool.shutdown();
         EventBus.getDefault().unregister(this);
         super.onStop();
-    }
-
-    @Override
-    public Object onRetainCustomNonConfigurationInstance() {
-        return mPool;
     }
 
     @Override
@@ -94,9 +82,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        /*if (mProgressFragment != null && mProgressFragment.isAdded()){
-            menuItemsVisibilitySettings(false, false, false);
-        }*/
         if (mWeatherFragment != null && mWeatherFragment.isAdded()){
             menuItemsVisibilitySettings(true, true, false);
         }
@@ -110,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
     public void onBackPressed() {
         if (mLocationFragment.isAdded()){
             menuItemsVisibilitySettings(true, true, false);
+            backToWeatherFragment();
         }
         super.onBackPressed();
     }
@@ -124,13 +110,14 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             case R.id.menu_item_update:
                 replaceFragment(mWeatherFragment, false);
+                EventBus.getDefault().post(new DataEvent(UPDATE_DATA, ""));
                 menuItemsVisibilitySettings(false, false, false);
-                preferCityName = mPreferences.getString(CITY_NAME, "");
-                receiveData(preferCityName);
+                mPreferCityName = mPreferences.getString(CITY_NAME, null);
+                receiveData(mPreferCityName);
                 return true;
             case R.id.menu_item_back:
                 replaceFragment(mWeatherFragment, false);
-                receiveData(preferCityName);
+                backToWeatherFragment();
                 menuItemsVisibilitySettings(true, true, false);
                 return true;
             default:
@@ -158,11 +145,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void receiveData(String cityName) {
         if (NetworkUtils.isConnected(getApplicationContext())) {
-            mPool = Executors.newCachedThreadPool();
-            mPool.submit(new ReceivingDataTask(getApplicationContext(), cityName));
-            mPool.shutdown();
+            mPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    ReceivingDataTask receivingDataTask = new ReceivingDataTask(getApplicationContext(), mPreferCityName);
+                    receivingDataTask.method();
+                }
+            });
         } else {
-            Toast.makeText(getApplicationContext(), "No internet connection", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),
+                    "No internet connection", Toast.LENGTH_SHORT).show();
         }
         Log.d(TAG, "receiveData method completed");
     }
@@ -182,6 +174,21 @@ public class MainActivity extends AppCompatActivity {
         mItemLocation.setVisible(itemLocationVisible);
         mItemUpdate.setVisible(itemUpdateVisible);
         mItemBack.setVisible(itemBackVisible);
+    }
+
+    private void backToWeatherFragment(){
+        //TODO find correct solution
+        mPool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(100);
+                    EventBus.getDefault().post(new DataEvent(BACK, null));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }
 
