@@ -1,12 +1,15 @@
-package com.teaching.jelus.myweatherview.activities;
+package com.teaching.jelus.myweatherview.activity;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -14,11 +17,11 @@ import android.widget.Toast;
 
 import com.teaching.jelus.myweatherview.DataEvent;
 import com.teaching.jelus.myweatherview.MyApp;
-import com.teaching.jelus.myweatherview.NetworkUtils;
 import com.teaching.jelus.myweatherview.R;
-import com.teaching.jelus.myweatherview.fragments.LocationFragment;
-import com.teaching.jelus.myweatherview.fragments.WeatherFragment;
-import com.teaching.jelus.myweatherview.tasks.ReceivingDataTask;
+import com.teaching.jelus.myweatherview.fragment.LocationFragment;
+import com.teaching.jelus.myweatherview.fragment.WeatherFragment;
+import com.teaching.jelus.myweatherview.task.ReceivingDataTask;
+import com.teaching.jelus.myweatherview.util.NetworkUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -29,17 +32,15 @@ import java.util.concurrent.ExecutorService;
 import static com.teaching.jelus.myweatherview.MessageType.BACK;
 import static com.teaching.jelus.myweatherview.MessageType.UPDATE_DATA;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = MainActivity.class.getSimpleName();
-    private final String CITY_NAME = "city_name";
     private FragmentManager mFragmentManager;
     private WeatherFragment mWeatherFragment;
     private LocationFragment mLocationFragment;
     private MenuItem mItemLocation;
     private MenuItem mItemUpdate;
     private MenuItem mItemBack;
-    private SharedPreferences mPreferences;
-    private String mPreferCityName;
     private ExecutorService mPool;
 
     @Override
@@ -47,14 +48,24 @@ public class MainActivity extends AppCompatActivity {
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.setDrawerListener(toggle);
+        toggle.syncState();
+
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+
         mFragmentManager = getSupportFragmentManager();
         mWeatherFragment = new WeatherFragment();
         mLocationFragment = new LocationFragment();
         replaceFragment(mWeatherFragment, false);
-        mPreferences = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        mPreferCityName = mPreferences.getString(CITY_NAME, "");
         mPool = MyApp.getPool();
-        receiveData(mPreferCityName);
+        receiveData();
     }
 
     @Override
@@ -97,7 +108,12 @@ public class MainActivity extends AppCompatActivity {
             menuItemsVisibilitySettings(true, true, false);
             backToWeatherFragment();
         }
-        super.onBackPressed();
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -109,11 +125,7 @@ public class MainActivity extends AppCompatActivity {
                 menuItemsVisibilitySettings(false, false, true);
                 return true;
             case R.id.menu_item_update:
-                replaceFragment(mWeatherFragment, false);
-                EventBus.getDefault().post(new DataEvent(UPDATE_DATA, ""));
-                menuItemsVisibilitySettings(false, false, false);
-                mPreferCityName = mPreferences.getString(CITY_NAME, null);
-                receiveData(mPreferCityName);
+                EventBus.getDefault().post(new DataEvent(UPDATE_DATA, null));
                 return true;
             case R.id.menu_item_back:
                 replaceFragment(mWeatherFragment, false);
@@ -123,6 +135,31 @@ public class MainActivity extends AppCompatActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+
+        if (id == R.id.nav_camera) {
+            // Handle the camera action
+        } else if (id == R.id.nav_gallery) {
+
+        } else if (id == R.id.nav_slideshow) {
+
+        } else if (id == R.id.nav_manage) {
+
+        } else if (id == R.id.nav_share) {
+
+        } else if (id == R.id.nav_send) {
+
+        }
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -137,18 +174,19 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case UPDATE_DATA:
                 /*replaceFragment(mProgressFragment, false);*/
+                replaceFragment(mWeatherFragment, false);
                 menuItemsVisibilitySettings(false, false, false);
-                receiveData(data.getMessage());
+                receiveData();
                 break;
         }
     }
 
-    private void receiveData(String cityName) {
+    private void receiveData() {
         if (NetworkUtils.isConnected(getApplicationContext())) {
             mPool.submit(new Runnable() {
                 @Override
                 public void run() {
-                    ReceivingDataTask receivingDataTask = new ReceivingDataTask(getApplicationContext(), mPreferCityName);
+                    ReceivingDataTask receivingDataTask = new ReceivingDataTask(getApplicationContext());
                     receivingDataTask.method();
                 }
             });
@@ -164,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
         if (addToBackStack){
             fragmentTransaction.addToBackStack(null);
         }
-        fragmentTransaction.replace(R.id.container, fragment);
+        fragmentTransaction.replace(R.id.fragment_container, fragment);
         fragmentTransaction.commit();
     }
 

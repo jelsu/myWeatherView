@@ -1,4 +1,4 @@
-package com.teaching.jelus.myweatherview.adapters;
+package com.teaching.jelus.myweatherview.adapter;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;

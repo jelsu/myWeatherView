@@ -1,4 +1,4 @@
-package com.teaching.jelus.myweatherview;
+package com.teaching.jelus.myweatherview.util;
 
 import android.content.Context;
 import android.net.ConnectivityManager;

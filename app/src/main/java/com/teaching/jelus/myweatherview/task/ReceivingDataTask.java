@@ -1,4 +1,4 @@
-package com.teaching.jelus.myweatherview.tasks;
+package com.teaching.jelus.myweatherview.task;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -9,8 +9,10 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.teaching.jelus.myweatherview.DataEvent;
-import com.teaching.jelus.myweatherview.helpers.DatabaseHelper;
-import com.teaching.jelus.myweatherview.helpers.LocationHelper;
+import com.teaching.jelus.myweatherview.MyApp;
+import com.teaching.jelus.myweatherview.Settings;
+import com.teaching.jelus.myweatherview.helper.DatabaseHelper;
+import com.teaching.jelus.myweatherview.helper.LocationHelper;
 
 import org.greenrobot.eventbus.EventBus;
 import org.json.JSONArray;
@@ -26,19 +28,19 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 import static com.teaching.jelus.myweatherview.MessageType.RECEIVE_DATA;
-import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.CITY_COLUMN;
-import static com.teaching.jelus.myweatherview.helpers.DatabaseHelper.ID_COLUMN;
+import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.CITY_COLUMN;
+import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.ID_COLUMN;
 
 public class ReceivingDataTask {
     private static final String TAG = ReceivingDataTask.class.getSimpleName();
-    private final String mCityName;
     private LocationHelper mLocationHelper;
     private DatabaseHelper mDatabaseHelper;
     private Context mContext;
+    private Settings mSettings;
 
-    public ReceivingDataTask(Context context, String cityName) {
+    public ReceivingDataTask(Context context) {
         mContext = context;
-        mCityName = cityName;
+        mSettings = MyApp.getSettings();
     }
 
     public void method() {
@@ -52,6 +54,7 @@ public class ReceivingDataTask {
             mLocationHelper.start();
             URL currWeatherUrl = getUrl("weather/");
             URL forecastUrl = getUrl("forecast/daily/");
+            mSettings.removeCityNameValue();
             String currWeatherStr = getStringFromUrl(currWeatherUrl);
             String forecastStr = getStringFromUrl(forecastUrl);
             JSONObject currWeatherJsonData = getJsonFromStr(currWeatherStr);
@@ -81,8 +84,10 @@ public class ReceivingDataTask {
         final String BEGINNING_URL = "http://api.openweathermap.org/data/2.5/";
         final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
         StringBuilder compositeUrl = new StringBuilder(BEGINNING_URL + requestType);
-        if (!mCityName.equals("")){
-            compositeUrl.append("?q=" + mCityName);
+        if (mSettings.isContainCityName()) {
+            compositeUrl.append("?q=" + mSettings.getCityNameValue());
+        } else if (mSettings.isContainPreferCityName()) {
+            compositeUrl.append("?q=" + mSettings.getPreferCityNameValue());
         } else {
             double latitude = mLocationHelper.getLatitude();
             double longitude = mLocationHelper.getLongitude();

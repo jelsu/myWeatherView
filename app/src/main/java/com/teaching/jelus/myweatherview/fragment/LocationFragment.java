@@ -1,8 +1,6 @@
-package com.teaching.jelus.myweatherview.fragments;
+package com.teaching.jelus.myweatherview.fragment;
 
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.text.Editable;
@@ -15,18 +13,18 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 
 import com.teaching.jelus.myweatherview.DataEvent;
+import com.teaching.jelus.myweatherview.MyApp;
 import com.teaching.jelus.myweatherview.R;
+import com.teaching.jelus.myweatherview.Settings;
 
 import org.greenrobot.eventbus.EventBus;
 
 import static com.teaching.jelus.myweatherview.MessageType.UPDATE_DATA;
 
 public class LocationFragment extends Fragment {
-    private final String CITY_NAME = "city_name";
-    private final String LOCATE = "locate";
     private EditText mCityNameEdit;
     private CheckBox mLocateCheck;
-    private SharedPreferences mPreferences;
+    private Settings mSettings;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -34,7 +32,7 @@ public class LocationFragment extends Fragment {
         View view =  inflater.inflate(R.layout.fragment_location, container, false);
         mCityNameEdit = (EditText) view.findViewById(R.id.edit_city_name);
         mLocateCheck = (CheckBox) view.findViewById(R.id.check_locate);
-        mPreferences = getActivity().getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        mSettings = MyApp.getSettings();
         checkLocationWidgetEnable();
         mCityNameEdit.setOnKeyListener(new View.OnKeyListener() {
             @Override
@@ -45,7 +43,8 @@ public class LocationFragment extends Fragment {
                     mCityNameEdit.setText(trimmedCityName);
                     mCityNameEdit.setSelection(mCityNameEdit.getText().length());
                     if (!trimmedCityName.equals("")){
-                        EventBus.getDefault().post(new DataEvent(UPDATE_DATA, trimmedCityName));
+                        mSettings.setCityNameValue(trimmedCityName);
+                        EventBus.getDefault().post(new DataEvent(UPDATE_DATA, null));
                     }
                     return true;
                 }
@@ -72,27 +71,26 @@ public class LocationFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        mCityNameEdit.setText(mPreferences.getString(CITY_NAME, ""));
-        mLocateCheck.setChecked(mPreferences.getBoolean(LOCATE, false));
+        mCityNameEdit.setText(mSettings.getPreferCityNameValue());
+        mLocateCheck.setChecked(mSettings.getLocateValue());
     }
 
     @Override
     public void onPause() {
-        savePreferences();
+        saveSettings();
         super.onPause();
     }
 
-    private void savePreferences(){
-        mPreferences.edit().clear().apply();
+    private void saveSettings(){
         if (!mCityNameEdit.getText().toString().equals("")){
-            mPreferences.edit().putBoolean(LOCATE, mLocateCheck.isChecked()).apply();
+            mSettings.setLocateValue(mLocateCheck.isChecked());
         } else {
-            mPreferences.edit().putBoolean(LOCATE, false).apply();
+            mSettings.setLocateValue(false);
         }
         if (mLocateCheck.isChecked()) {
-            mPreferences.edit().putString(CITY_NAME, mCityNameEdit.getText().toString()).apply();
+            mSettings.setPreferCityNameValue(mCityNameEdit.getText().toString());
         } else {
-            mPreferences.edit().putString(CITY_NAME, "").apply();
+            mSettings.removePreferCityNameValue();
         }
     }
 

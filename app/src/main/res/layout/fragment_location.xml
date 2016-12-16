@@ -3,7 +3,7 @@
              android:layout_width="match_parent"
              android:layout_height="match_parent"
               android:orientation="vertical"
-             tools:context="com.teaching.jelus.myweatherview.fragments.LocationFragment">
+             tools:context="com.teaching.jelus.myweatherview.fragment.LocationFragment">
 
     <EditText
         android:id="@+id/edit_city_name"
