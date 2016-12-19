@@ -1,6 +1,7 @@
 package com.teaching.jelus.myweatherview.fragment;
 
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.text.Editable;
@@ -9,19 +10,20 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
 
 import com.teaching.jelus.myweatherview.DataEvent;
+import com.teaching.jelus.myweatherview.MessageType;
 import com.teaching.jelus.myweatherview.MyApp;
 import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.Settings;
 
 import org.greenrobot.eventbus.EventBus;
 
-import static com.teaching.jelus.myweatherview.MessageType.UPDATE_DATA;
-
 public class LocationFragment extends Fragment {
+    public static final String TAG = LocationFragment.class.getSimpleName();
     private EditText mCityNameEdit;
     private CheckBox mLocateCheck;
     private Settings mSettings;
@@ -44,7 +46,8 @@ public class LocationFragment extends Fragment {
                     mCityNameEdit.setSelection(mCityNameEdit.getText().length());
                     if (!trimmedCityName.equals("")){
                         mSettings.setCityNameValue(trimmedCityName);
-                        EventBus.getDefault().post(new DataEvent(UPDATE_DATA, null));
+                        EventBus.getDefault().post(new DataEvent(MessageType.UPDATE_DATA, null));
+                        hideKeyboard();
                     }
                     return true;
                 }
@@ -101,5 +104,14 @@ public class LocationFragment extends Fragment {
         } else {
             mLocateCheck.setVisibility(View.VISIBLE);
         }
+    }
+
+    private void hideKeyboard() {
+        InputMethodManager inputManager =
+                (InputMethodManager) getActivity().
+                        getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputManager.hideSoftInputFromWindow(
+                getActivity().getCurrentFocus().getWindowToken(),
+                InputMethodManager.HIDE_NOT_ALWAYS);
     }
 }

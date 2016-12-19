@@ -44,7 +44,7 @@ import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.TEMPERATURE
 
 @SuppressWarnings("WrongConstant")
 public class WeatherFragment extends Fragment {
-    private static final String TAG = WeatherFragment.class.getSimpleName();
+    public static final String TAG = WeatherFragment.class.getSimpleName();
     private TextView mTempTextView;
     private TextView mCityNameTextView;
     private TextView mDescriptionTextView;

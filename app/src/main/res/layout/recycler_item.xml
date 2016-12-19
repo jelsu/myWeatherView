@@ -47,10 +47,9 @@
         android:layout_alignParentEnd="true"/>
 
     <View
-        android:id="@+id/bottom_divider"
         android:layout_width="match_parent"
         android:layout_height="1px"
-        android:background="@color/colorPrimary"
+        android:background="@color/colorGray"
         android:layout_marginTop="20dp"
         android:layout_below="@id/image_forecast_weather"/>
 

@@ -15,7 +15,6 @@
                  android:visibility="visible">
 
         <com.github.ybq.android.spinkit.SpinKitView
-            android:id="@+id/spin_kit"
             style="@style/SpinKitView.Large.ThreeBounce"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

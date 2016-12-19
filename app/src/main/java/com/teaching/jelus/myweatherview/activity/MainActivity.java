@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.teaching.jelus.myweatherview.DataEvent;
+import com.teaching.jelus.myweatherview.MessageType;
 import com.teaching.jelus.myweatherview.MyApp;
 import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.fragment.LocationFragment;
@@ -29,18 +30,11 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.concurrent.ExecutorService;
 
-import static com.teaching.jelus.myweatherview.MessageType.BACK;
-import static com.teaching.jelus.myweatherview.MessageType.UPDATE_DATA;
-
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = MainActivity.class.getSimpleName();
-    private FragmentManager mFragmentManager;
-    private WeatherFragment mWeatherFragment;
-    private LocationFragment mLocationFragment;
-    private MenuItem mItemLocation;
     private MenuItem mItemUpdate;
-    private MenuItem mItemBack;
+    private NavigationView mNavigationView;
     private ExecutorService mPool;
 
     @Override
@@ -49,6 +43,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("");
         setSupportActionBar(toolbar);
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -57,13 +52,11 @@ public class MainActivity extends AppCompatActivity
         drawer.setDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+        mNavigationView = (NavigationView) findViewById(R.id.nav_view);
+        mNavigationView.setNavigationItemSelectedListener(this);
 
-        mFragmentManager = getSupportFragmentManager();
-        mWeatherFragment = new WeatherFragment();
-        mLocationFragment = new LocationFragment();
-        replaceFragment(mWeatherFragment, false);
+        replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
+        mNavigationView.getMenu().getItem(0).setChecked(true);
         mPool = MyApp.getPool();
         receiveData();
     }
@@ -85,28 +78,16 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        mItemLocation = menu.findItem(R.id.menu_item_location);
         mItemUpdate = menu.findItem(R.id.menu_item_update);
-        mItemBack = menu.findItem(R.id.menu_item_back);
         return super.onCreateOptionsMenu(menu);
     }
 
     @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        if (mWeatherFragment != null && mWeatherFragment.isAdded()){
-            menuItemsVisibilitySettings(true, true, false);
-        }
-        if (mLocationFragment != null && mLocationFragment.isAdded()){
-            menuItemsVisibilitySettings(false, false, true);
-        }
-        return super.onPrepareOptionsMenu(menu);
-    }
-
-    @Override
     public void onBackPressed() {
-        if (mLocationFragment.isAdded()){
-            menuItemsVisibilitySettings(true, true, false);
+        Fragment locationFragment = getSupportFragmentManager().findFragmentByTag(LocationFragment.TAG);
+        if (locationFragment != null && locationFragment.isAdded()) {
             backToWeatherFragment();
+            mNavigationView.getMenu().getItem(0).setChecked(true);
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -114,23 +95,15 @@ public class MainActivity extends AppCompatActivity
         } else {
             super.onBackPressed();
         }
+        updateItemMenuVisible();
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         switch (id){
-            case R.id.menu_item_location:
-                replaceFragment(mLocationFragment, true);
-                menuItemsVisibilitySettings(false, false, true);
-                return true;
             case R.id.menu_item_update:
-                EventBus.getDefault().post(new DataEvent(UPDATE_DATA, null));
-                return true;
-            case R.id.menu_item_back:
-                replaceFragment(mWeatherFragment, false);
-                backToWeatherFragment();
-                menuItemsVisibilitySettings(true, true, false);
+                EventBus.getDefault().post(new DataEvent(MessageType.UPDATE_DATA, null));
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -143,18 +116,16 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+        switch (id) {
+            case R.id.nav_weather:
+                replaceFragment(new WeatherFragment(), WeatherFragment.TAG, true);
+                backToWeatherFragment();
+                updateItemMenuVisible();
+                break;
+            case R.id.nav_location:
+                replaceFragment(new LocationFragment(), LocationFragment.TAG, true);
+                updateItemMenuVisible();
+                break;
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -166,16 +137,14 @@ public class MainActivity extends AppCompatActivity
     public void onMessageEvent(DataEvent data) {
         switch (data.getType()){
             case RECEIVE_DATA:
-                menuItemsVisibilitySettings(true, true, false);
-                /*replaceFragment(mWeatherFragment, false);*/
                 Toast.makeText(getApplicationContext(),
                         data.getMessage(),
                         Toast.LENGTH_LONG).show();
                 break;
             case UPDATE_DATA:
-                /*replaceFragment(mProgressFragment, false);*/
-                replaceFragment(mWeatherFragment, false);
-                menuItemsVisibilitySettings(false, false, false);
+                replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
+                mNavigationView.getMenu().getItem(0).setChecked(true);
+                updateItemMenuVisible();
                 receiveData();
                 break;
         }
@@ -197,21 +166,15 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "receiveData method completed");
     }
 
-    private void replaceFragment(Fragment fragment, boolean addToBackStack){
-        FragmentTransaction fragmentTransaction = mFragmentManager.beginTransaction();
+    private void replaceFragment(Fragment fragment, String tag, boolean addToBackStack){
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         if (addToBackStack){
-            fragmentTransaction.addToBackStack(null);
+            fragmentTransaction.addToBackStack(tag);
         }
-        fragmentTransaction.replace(R.id.fragment_container, fragment);
+        fragmentTransaction.replace(R.id.fragment_container, fragment, tag);
         fragmentTransaction.commit();
-    }
-
-    private void menuItemsVisibilitySettings(boolean itemLocationVisible,
-                                             boolean itemUpdateVisible,
-                                             boolean itemBackVisible){
-        mItemLocation.setVisible(itemLocationVisible);
-        mItemUpdate.setVisible(itemUpdateVisible);
-        mItemBack.setVisible(itemBackVisible);
+        fragmentManager.executePendingTransactions();
     }
 
     private void backToWeatherFragment(){
@@ -221,12 +184,23 @@ public class MainActivity extends AppCompatActivity
             public void run() {
                 try {
                     Thread.sleep(100);
-                    EventBus.getDefault().post(new DataEvent(BACK, null));
+                    EventBus.getDefault().post(new DataEvent(MessageType.BACK, null));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
         });
+    }
+
+    private void updateItemMenuVisible() {
+        Fragment weatherFragment = getSupportFragmentManager().findFragmentByTag(WeatherFragment.TAG);
+        Fragment locationFragment = getSupportFragmentManager().findFragmentByTag(LocationFragment.TAG);
+        if (weatherFragment != null && weatherFragment.isAdded()) {
+            mItemUpdate.setVisible(true);
+        } else if (locationFragment != null && locationFragment.isAdded()) {
+            mItemUpdate.setVisible(false);
+        }
+        Log.d(TAG, "updateItemMenuVisible");
     }
 }
 

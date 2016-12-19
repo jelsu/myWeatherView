@@ -2,29 +2,14 @@
 <menu xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <group
-        android:id="@+id/group_weather"
+    <group android:checkableBehavior="single">
 
-        android:orderInCategory="100"
-        android:visible="false"
-        app:showAsAction="never">
-        <item
-            android:id="@+id/menu_item_location"
-            android:title="@string/menu_item_location"
-            app:showAsAction="never"/>
         <item
             android:id="@+id/menu_item_update"
-            android:title="@string/menu_item_update"
-            app:showAsAction="never"/>
-    </group>
-    <group
-        android:id="@+id/group_location"
-        android:orderInCategory="100">
-        <item
-            android:id="@+id/menu_item_back"
-            android:icon="@drawable/ic_back"
-            android:visible="false"
-            app:showAsAction="always"/>
+            android:icon="@drawable/ic_update"
+            android:visible="true"
+            app:showAsAction="always"
+            android:title=""/>
     </group>
 
 </menu>
