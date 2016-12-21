@@ -22,7 +22,7 @@ import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.fragment.LocationFragment;
 import com.teaching.jelus.myweatherview.fragment.WeatherFragment;
 import com.teaching.jelus.myweatherview.task.ReceivingDataTask;
-import com.teaching.jelus.myweatherview.util.NetworkUtils;
+import com.teaching.jelus.myweatherview.util.Utils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -84,8 +84,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        Fragment locationFragment = getSupportFragmentManager().findFragmentByTag(LocationFragment.TAG);
-        if (locationFragment != null && locationFragment.isAdded()) {
+        if (isFragmentAdded(LocationFragment.TAG)) {
             backToWeatherFragment();
             mNavigationView.getMenu().getItem(0).setChecked(true);
         }
@@ -103,7 +102,7 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
         switch (id){
             case R.id.menu_item_update:
-                EventBus.getDefault().post(new DataEvent(MessageType.UPDATE_DATA, null));
+                EventBus.getDefault().post(new DataEvent(MessageType.ALL_DATA_UPDATE, null));
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -113,21 +112,21 @@ public class MainActivity extends AppCompatActivity
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
         int id = item.getItemId();
-
         switch (id) {
             case R.id.nav_weather:
-                replaceFragment(new WeatherFragment(), WeatherFragment.TAG, true);
-                backToWeatherFragment();
-                updateItemMenuVisible();
+                if (!isFragmentAdded(WeatherFragment.TAG)) {
+                    replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
+                    backToWeatherFragment();
+                }
                 break;
             case R.id.nav_location:
-                replaceFragment(new LocationFragment(), LocationFragment.TAG, true);
-                updateItemMenuVisible();
+                if (!isFragmentAdded(LocationFragment.TAG)) {
+                    replaceFragment(new LocationFragment(), LocationFragment.TAG, true);
+                }
                 break;
         }
-
+        updateItemMenuVisible();
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -141,7 +140,7 @@ public class MainActivity extends AppCompatActivity
                         data.getMessage(),
                         Toast.LENGTH_LONG).show();
                 break;
-            case UPDATE_DATA:
+            case ALL_DATA_UPDATE:
                 replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
                 mNavigationView.getMenu().getItem(0).setChecked(true);
                 updateItemMenuVisible();
@@ -151,7 +150,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void receiveData() {
-        if (NetworkUtils.isConnected(getApplicationContext())) {
+        if (Utils.isConnected(getApplicationContext())) {
             mPool.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -193,14 +192,18 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void updateItemMenuVisible() {
-        Fragment weatherFragment = getSupportFragmentManager().findFragmentByTag(WeatherFragment.TAG);
-        Fragment locationFragment = getSupportFragmentManager().findFragmentByTag(LocationFragment.TAG);
-        if (weatherFragment != null && weatherFragment.isAdded()) {
+        if (isFragmentAdded(WeatherFragment.TAG)) {
             mItemUpdate.setVisible(true);
-        } else if (locationFragment != null && locationFragment.isAdded()) {
+        } else if (isFragmentAdded(LocationFragment.TAG)) {
             mItemUpdate.setVisible(false);
         }
         Log.d(TAG, "updateItemMenuVisible");
     }
+
+    private boolean isFragmentAdded(String tag) {
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag(tag);
+        return fragment != null && fragment.isAdded();
+    }
+
 }
 

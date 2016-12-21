@@ -46,7 +46,7 @@ public class LocationFragment extends Fragment {
                     mCityNameEdit.setSelection(mCityNameEdit.getText().length());
                     if (!trimmedCityName.equals("")){
                         mSettings.setCityNameValue(trimmedCityName);
-                        EventBus.getDefault().post(new DataEvent(MessageType.UPDATE_DATA, null));
+                        EventBus.getDefault().post(new DataEvent(MessageType.ALL_DATA_UPDATE, null));
                         hideKeyboard();
                     }
                     return true;

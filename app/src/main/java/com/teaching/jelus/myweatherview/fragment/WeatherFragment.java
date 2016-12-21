@@ -1,13 +1,17 @@
 package com.teaching.jelus.myweatherview.fragment;
 
 
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -20,19 +24,14 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.teaching.jelus.myweatherview.DataEvent;
-import com.teaching.jelus.myweatherview.ForecastData;
 import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.adapter.RecyclerAdapter;
 import com.teaching.jelus.myweatherview.helper.DatabaseHelper;
+import com.teaching.jelus.myweatherview.util.Utils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
-
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
 
 import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.CITY_COLUMN;
 import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.DATE_COLUMN;
@@ -43,17 +42,39 @@ import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.TEMPERATURE
 import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
 
 @SuppressWarnings("WrongConstant")
-public class WeatherFragment extends Fragment {
+public class WeatherFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
     public static final String TAG = WeatherFragment.class.getSimpleName();
+    private final int LOADER_ID = 1;
+    private final int CITY_NAME_UPDATE = 1;
+    private final int TEMP_UPDATE = 2;
+    private final int DESCRIPTION_UPDATE = 3;
+    private final int DATE_UPDATE = 4;
+    private final int IMAGE_UPDATE = 5;
+
     private TextView mTempTextView;
     private TextView mCityNameTextView;
     private TextView mDescriptionTextView;
     private ImageView mWeatherImageView;
-    private RecyclerView mRecyclerView;
+    private RecyclerAdapter mRecyclerAdapter;
     private TextView mDateTimeTextView;
     private DatabaseHelper mDatabaseHelper;
     private FrameLayout mProgressFragment;
     private RelativeLayout mDataFragment;
+    private android.os.Handler mHandler;
+
+    static class MyCursorLoader extends CursorLoader {
+        DatabaseHelper db;
+        public MyCursorLoader(Context context, DatabaseHelper db) {
+            super(context);
+            this.db = db;
+        }
+
+        @Override
+        public Cursor loadInBackground() {
+            Cursor cursor = db.getForecastData();
+            return cursor;
+        }
+    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -74,10 +95,41 @@ public class WeatherFragment extends Fragment {
         mDescriptionTextView = (TextView) view.findViewById(R.id.text_weather_description);
         mDateTimeTextView = (TextView) view.findViewById(R.id.text_weather_date);
         mWeatherImageView = (ImageView) view.findViewById(R.id.image_weather);
-        mRecyclerView = (RecyclerView) view.findViewById(R.id.recycler_forecast);
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
-        mRecyclerView.setLayoutManager(layoutManager);
+        RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.recycler_forecast);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        mRecyclerAdapter = new RecyclerAdapter(getActivity(), null);
+        recyclerView.setAdapter(mRecyclerAdapter);
+        mDatabaseHelper = new DatabaseHelper(getActivity());
+        mHandler = new android.os.Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch (msg.what) {
+                    case CITY_NAME_UPDATE:
+                        mCityNameTextView.setText((String) msg.obj);
+                        break;
+                    case TEMP_UPDATE:
+                        String str = msg.obj + "°";
+                        mTempTextView.setText(str);
+                        break;
+                    case DESCRIPTION_UPDATE:
+                        mDescriptionTextView.setText((String) msg.obj);
+                        break;
+                    case DATE_UPDATE:
+                        mDateTimeTextView.setText((String) msg.obj);
+                        break;
+                    case IMAGE_UPDATE:
+                        mWeatherImageView.setImageBitmap((Bitmap) msg.obj);
+                        break;
+                }
+            }
+        };
         return view;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        getLoaderManager().initLoader(LOADER_ID, null, this);
     }
 
     @Override
@@ -86,16 +138,29 @@ public class WeatherFragment extends Fragment {
         super.onDestroy();
     }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return new MyCursorLoader(getContext(), mDatabaseHelper);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mRecyclerAdapter.swapCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mRecyclerAdapter.swapCursor(null);
+    }
+
     private void updateUI(){
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                //TODO realize update via handler
-                mDatabaseHelper = new DatabaseHelper(getActivity());
                 SQLiteDatabase db = mDatabaseHelper.getWritableDatabase();
                 updateCurrWeatherWidgets(db);
-                updateForecastWidgets(db);
-                mDatabaseHelper.close();
+                //TODO check this method correctness
+                getLoaderManager().getLoader(LOADER_ID).forceLoad();
                 Log.d(TAG, "update UI completed");
             }
         });
@@ -109,7 +174,7 @@ public class WeatherFragment extends Fragment {
                 mProgressFragment.setVisibility(View.GONE);
                 mDataFragment.setVisibility(View.VISIBLE);
                 break;
-            case UPDATE_DATA:
+            case ALL_DATA_UPDATE:
                 mProgressFragment.setVisibility(View.VISIBLE);
                 mDataFragment.setVisibility(View.GONE);
                 break;
@@ -137,76 +202,24 @@ public class WeatherFragment extends Fragment {
                     + tempMin) / 2));
             String description = cursor.getString(descriptionColIndex);
             long unixDate = cursor.getLong(dateColIndex);
-            long lastUpdateTime = getDifferenceBetweenDates(unixDate * 1000);
+            long lastUpdateTime = Utils.getDifferenceBetweenDates(unixDate * 1000);
             String lastUpdateStr = getLastUpdateString(lastUpdateTime);
-            Bitmap image = convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
-            mCityNameTextView.setText(cityName);
-            mTempTextView.setText(averageTemp + "°");
-            mDescriptionTextView.setText(description);
-            mDateTimeTextView.setText(lastUpdateStr);
-            mWeatherImageView.setImageBitmap(image);
+            Bitmap image = Utils.convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
+            sendHandlerMessage(CITY_NAME_UPDATE, cityName);
+            sendHandlerMessage(TEMP_UPDATE, averageTemp);
+            sendHandlerMessage(DESCRIPTION_UPDATE, description);
+            sendHandlerMessage(DATE_UPDATE, lastUpdateStr);
+            sendHandlerMessage(IMAGE_UPDATE, image);
         } else {
             Log.d(TAG, "Database is null");
         }
         cursor.close();
     }
 
-    private void updateForecastWidgets(SQLiteDatabase db) {
-        ArrayList<ForecastData> forecastArrayList = new ArrayList<>();
-        Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
-        if (cursor.moveToFirst()){
-            cursor.moveToNext();
-            do {
-                int tempMinColIndex = cursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
-                int tempMaxColIndex = cursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
-                int descriptionColIndex = cursor.getColumnIndex(DESCRIPTION_COLUMN);
-                int dateColIndex = cursor.getColumnIndex(DATE_COLUMN);
-                int imageColIndex = cursor.getColumnIndex(IMAGE_COLUMN);
-                int tempMin = cursor.getInt(tempMinColIndex);
-                int tempMax = cursor.getInt(tempMaxColIndex);
-                String description = cursor.getString(descriptionColIndex);
-                String date = getStringDate(convertUnixTimeToDate(cursor.getLong(dateColIndex)));
-                Bitmap image = convertByteArrayToBitmap(cursor.getBlob(imageColIndex));
-                ForecastData forecastData = new ForecastData(tempMin,
-                        tempMax,
-                        description,
-                        date,
-                        image);
-                forecastArrayList.add(forecastData);
-            }
-            while (cursor.moveToNext());
-        } else {
-            Log.d(TAG, "Database is null");
-        }
-        cursor.close();
-        RecyclerView.Adapter adapter = new RecyclerAdapter(forecastArrayList);
-        mRecyclerView.setAdapter(adapter);
-    }
-
-    private Bitmap convertByteArrayToBitmap(byte[] data){
-        Bitmap bitmap= BitmapFactory.decodeByteArray(data, 0, data.length);
-        return bitmap;
-    }
-
-    private Date convertUnixTimeToDate(long unixTime){
-        return new Date(unixTime * 1000);
-    }
-
-    private String getStringDate(Date date) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM");
-        Date currentDate = new Date();
-        long minDifference = getDifferenceBetweenDates(date.getTime()) - 720;
-        if (dateFormat.format(date).equals(dateFormat.format(currentDate))){
-            return "Today";
-        } else if (minDifference <= 1440){
-            return "Tomorrow";
-        }
-        return new SimpleDateFormat("EEEE", Locale.ENGLISH).format(date);
-    }
-
-    private long getDifferenceBetweenDates(long date) {
-        long millisDifference = Math.abs(System.currentTimeMillis() - date) / 1000;
-        return millisDifference / 60;
+    private void sendHandlerMessage(int what, Object obj) {
+        Message msg;
+        msg = mHandler.obtainMessage(what, obj);
+        mHandler.sendMessage(msg);
     }
 
     private String getLastUpdateString(long updateTime){

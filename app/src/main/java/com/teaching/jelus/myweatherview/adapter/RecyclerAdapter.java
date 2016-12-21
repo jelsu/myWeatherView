@@ -1,5 +1,9 @@
 package com.teaching.jelus.myweatherview.adapter;
 
+import android.app.Activity;
+import android.content.Context;
+import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,13 +11,22 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.teaching.jelus.myweatherview.ForecastData;
 import com.teaching.jelus.myweatherview.R;
+import com.teaching.jelus.myweatherview.util.Utils;
 
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.DATE_COLUMN;
+import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.DESCRIPTION_COLUMN;
+import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.IMAGE_COLUMN;
+import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.TEMPERATURE_MAX_COLUMN;
+import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.TEMPERATURE_MIN_COLUMN;
 
 public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHolder> {
-    private ArrayList<ForecastData> mDataset;
+    private Context mContext;
+    private Cursor mCursor;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         private TextView mForecastTempeTextView;
@@ -34,8 +47,9 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
         }
     }
 
-    public RecyclerAdapter(ArrayList<ForecastData> forecastData) {
-        mDataset = forecastData;
+    public RecyclerAdapter(Activity context, Cursor cursor) {
+        mContext = context;
+        mCursor = cursor;
     }
 
     @Override
@@ -48,18 +62,51 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        ForecastData forecastData = mDataset.get(position);
-        holder.mForecastTempeTextView.setText(String.valueOf(forecastData.getTempMax())
-                + "° / "
-                + String.valueOf(forecastData.getTempMin())
-                + "°");
-        holder.mForecastDescriptionTextView.setText(forecastData.getDescription());
-        holder.mForecastDataTextView.setText(forecastData.getData());
-        holder.mForecastImageView.setImageBitmap(forecastData.getImage());
+        mCursor.moveToPosition(position);
+        int tempMinColIndex = mCursor.getColumnIndex(TEMPERATURE_MIN_COLUMN);
+        int tempMaxColIndex = mCursor.getColumnIndex(TEMPERATURE_MAX_COLUMN);
+        int descriptionColIndex = mCursor.getColumnIndex(DESCRIPTION_COLUMN);
+        int dateColIndex = mCursor.getColumnIndex(DATE_COLUMN);
+        int imageColIndex = mCursor.getColumnIndex(IMAGE_COLUMN);
+        int tempMin = mCursor.getInt(tempMinColIndex);
+        int tempMax = mCursor.getInt(tempMaxColIndex);
+        String description = mCursor.getString(descriptionColIndex);
+        String date = getStringDate(Utils.convertUnixTimeToDate(mCursor.getLong(dateColIndex)));
+        Bitmap image = Utils.convertByteArrayToBitmap(mCursor.getBlob(imageColIndex));
+        holder.mForecastTempeTextView.setText(String.valueOf(tempMax) + "° / "
+                + String.valueOf(tempMin) + "°");
+        holder.mForecastDescriptionTextView.setText(description);
+        holder.mForecastDataTextView.setText(date);
+        holder.mForecastImageView.setImageBitmap(image);
     }
 
     @Override
     public int getItemCount() {
-        return mDataset.size();
+        return (mCursor == null) ? 0 : mCursor.getCount();
     }
+
+    public Cursor swapCursor(Cursor cursor) {
+        if (mCursor == cursor) {
+            return null;
+        }
+        Cursor oldCursor = mCursor;
+        this.mCursor = cursor;
+        if (cursor != null) {
+            this.notifyDataSetChanged();
+        }
+        return oldCursor;
+    }
+
+    private String getStringDate(Date date) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM");
+        Date currentDate = new Date();
+        long minDifference = Utils.getDifferenceBetweenDates(date.getTime()) - 720;
+        if (dateFormat.format(date).equals(dateFormat.format(currentDate))){
+            return "Today";
+        } else if (minDifference <= 1440){
+            return "Tomorrow";
+        }
+        return new SimpleDateFormat("EEEE", Locale.ENGLISH).format(date);
+    }
+
 }

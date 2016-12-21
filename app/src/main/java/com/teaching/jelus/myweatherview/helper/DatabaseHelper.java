@@ -47,6 +47,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
         Log.d(TAG, "Update " + oldVersion + " version to " + newVersion + " version");
     }
 
+    public Cursor getForecastData(){
+        SQLiteDatabase db = this.getWritableDatabase();
+        String selection = ID_COLUMN + " > 1";
+        return db.query(TABLE_NAME, null, selection, null, null, null, null);
+    }
+
     public void showDataInLog(){
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
