@@ -24,6 +24,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.teaching.jelus.myweatherview.DataEvent;
+import com.teaching.jelus.myweatherview.MyApp;
 import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.adapter.RecyclerAdapter;
 import com.teaching.jelus.myweatherview.helper.DatabaseHelper;
@@ -99,7 +100,7 @@ public class WeatherFragment extends Fragment implements LoaderManager.LoaderCal
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         mRecyclerAdapter = new RecyclerAdapter(getActivity(), null);
         recyclerView.setAdapter(mRecyclerAdapter);
-        mDatabaseHelper = new DatabaseHelper(getActivity());
+        mDatabaseHelper = MyApp.getDatabaseHelper();
         mHandler = new android.os.Handler() {
             @Override
             public void handleMessage(Message msg) {

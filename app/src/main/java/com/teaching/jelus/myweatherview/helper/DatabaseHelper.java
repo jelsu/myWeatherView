@@ -10,7 +10,7 @@ import android.util.Log;
 public class DatabaseHelper extends SQLiteOpenHelper implements BaseColumns {
     private static final String TAG = DatabaseHelper.class.getSimpleName();
     public static final String DATABASE_NAME = "db";
-    public static final int DATABASE_VERSION = 4;
+    public static final int DATABASE_VERSION = 1;
     public static final String TABLE_NAME = "weather";
     public static final String ID_COLUMN = BaseColumns._ID;
     public static final String CITY_COLUMN = "city";

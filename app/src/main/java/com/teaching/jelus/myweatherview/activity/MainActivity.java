@@ -1,6 +1,7 @@
 package com.teaching.jelus.myweatherview.activity;
 
 import android.os.Bundle;
+import android.os.Looper;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -19,16 +20,22 @@ import com.teaching.jelus.myweatherview.DataEvent;
 import com.teaching.jelus.myweatherview.MessageType;
 import com.teaching.jelus.myweatherview.MyApp;
 import com.teaching.jelus.myweatherview.R;
+import com.teaching.jelus.myweatherview.Settings;
 import com.teaching.jelus.myweatherview.fragment.LocationFragment;
 import com.teaching.jelus.myweatherview.fragment.WeatherFragment;
+import com.teaching.jelus.myweatherview.helper.LocationHelper;
 import com.teaching.jelus.myweatherview.task.ReceivingDataTask;
 import com.teaching.jelus.myweatherview.util.Utils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONObject;
 
+import java.net.URL;
 import java.util.concurrent.ExecutorService;
+
+import static com.teaching.jelus.myweatherview.MessageType.RECEIVE_DATA;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -154,8 +161,42 @@ public class MainActivity extends AppCompatActivity
             mPool.submit(new Runnable() {
                 @Override
                 public void run() {
-                    ReceivingDataTask receivingDataTask = new ReceivingDataTask(getApplicationContext());
-                    receivingDataTask.method();
+                    //DatabaseHelper databaseHelper = new DatabaseHelper(getApplicationContext());
+                    LocationHelper locationHelper = new LocationHelper(getApplicationContext());
+                    try {
+                        if (Looper.myLooper() == null)
+                        {
+                            Looper.prepare();
+                        }
+                        locationHelper.start();
+                        URL currWeatherUrl = ReceivingDataTask.getUrl("weather", locationHelper.getLatitude(), locationHelper.getLongitude());
+                        URL forecastUrl = ReceivingDataTask.getUrl("forecast/daily", locationHelper.getLatitude(), locationHelper.getLongitude());
+                        Settings settings = MyApp.getSettings();
+                        settings.removeCityNameValue();
+                        String currWeatherStr = ReceivingDataTask.getStringFromUrl(currWeatherUrl);
+                        String forecastStr = ReceivingDataTask.getStringFromUrl(forecastUrl);
+                        JSONObject currWeatherJsonData = ReceivingDataTask.getJsonFromStr(currWeatherStr);
+                        JSONObject forecastJsonData = ReceivingDataTask.getJsonFromStr(forecastStr);
+                        locationHelper.stop();
+                        if (ReceivingDataTask.isDataCorrect(currWeatherJsonData)
+                                && ReceivingDataTask.isDataCorrect(forecastJsonData)) {
+                            ReceivingDataTask.saveCurrWeatherDataInDb(currWeatherJsonData);
+                            ReceivingDataTask.saveForecastDataInDb(forecastJsonData);
+                            MyApp.getDatabaseHelper().showDataInLog();
+                            EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
+                                    "Data successfully updated"));
+                        } else {
+                            EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
+                                    "Receiving data error"));
+                        }
+                        //databaseHelper.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
+                                "Receiving data error"));
+                        locationHelper.stop();
+                        //databaseHelper.close();
+                    }
                 }
             });
         } else {
