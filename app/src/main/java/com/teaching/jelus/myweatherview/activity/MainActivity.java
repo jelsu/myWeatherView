@@ -1,7 +1,6 @@
 package com.teaching.jelus.myweatherview.activity;
 
 import android.os.Bundle;
-import android.os.Looper;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -161,27 +160,32 @@ public class MainActivity extends AppCompatActivity
             mPool.submit(new Runnable() {
                 @Override
                 public void run() {
-                    //DatabaseHelper databaseHelper = new DatabaseHelper(getApplicationContext());
-                    LocationHelper locationHelper = new LocationHelper(getApplicationContext());
+                    LocationHelper locationHelper = MyApp.getLocationHelper();
                     try {
-                        if (Looper.myLooper() == null)
-                        {
-                            Looper.prepare();
-                        }
                         locationHelper.start();
-                        URL currWeatherUrl = ReceivingDataTask.getUrl("weather", locationHelper.getLatitude(), locationHelper.getLongitude());
-                        URL forecastUrl = ReceivingDataTask.getUrl("forecast/daily", locationHelper.getLatitude(), locationHelper.getLongitude());
+                        URL currWeatherUrl = ReceivingDataTask.getUrl("weather",
+                                locationHelper.getLatitude(),
+                                locationHelper.getLongitude());
+                        URL forecastUrl = ReceivingDataTask.getUrl("forecast/daily",
+                                locationHelper.getLatitude(),
+                                locationHelper.getLongitude());
+                        locationHelper.stop();
+
                         Settings settings = MyApp.getSettings();
                         settings.removeCityNameValue();
-                        String currWeatherStr = ReceivingDataTask.getStringFromUrl(currWeatherUrl);
-                        String forecastStr = ReceivingDataTask.getStringFromUrl(forecastUrl);
-                        JSONObject currWeatherJsonData = ReceivingDataTask.getJsonFromStr(currWeatherStr);
-                        JSONObject forecastJsonData = ReceivingDataTask.getJsonFromStr(forecastStr);
-                        locationHelper.stop();
+
+                        String currWeatherStr = ReceivingDataTask.getStrFromUrl(currWeatherUrl);
+                        String forecastStr = ReceivingDataTask.getStrFromUrl(forecastUrl);
+
+                        JSONObject currWeatherJsonData = ReceivingDataTask
+                                .getJsonFromStr(currWeatherStr);
+                        JSONObject forecastJsonData = ReceivingDataTask
+                                .getJsonFromStr(forecastStr);
+
                         if (ReceivingDataTask.isDataCorrect(currWeatherJsonData)
                                 && ReceivingDataTask.isDataCorrect(forecastJsonData)) {
-                            ReceivingDataTask.saveCurrWeatherDataInDb(currWeatherJsonData);
-                            ReceivingDataTask.saveForecastDataInDb(forecastJsonData);
+                            ReceivingDataTask.saveCurrWeatherDataToDb(currWeatherJsonData);
+                            ReceivingDataTask.saveForecastDataToDb(forecastJsonData);
                             MyApp.getDatabaseHelper().showDataInLog();
                             EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
                                     "Data successfully updated"));
@@ -189,13 +193,11 @@ public class MainActivity extends AppCompatActivity
                             EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
                                     "Receiving data error"));
                         }
-                        //databaseHelper.close();
                     } catch (Exception e) {
                         e.printStackTrace();
                         EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
                                 "Receiving data error"));
                         locationHelper.stop();
-                        //databaseHelper.close();
                     }
                 }
             });

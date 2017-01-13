@@ -51,7 +51,7 @@ public class ReceivingDataTask {
         return new JSONObject(str);
     }
 
-    public static void saveCurrWeatherDataInDb(JSONObject jsonObject) throws Exception{
+    public static void saveCurrWeatherDataToDb(JSONObject jsonObject) throws Exception{
         final int CURR_RECORD_ID = 1;
         final int SINGLE_POSITION = 0;
         String cityName = jsonObject.getString("name");
@@ -65,10 +65,10 @@ public class ReceivingDataTask {
         String iconCode = weather.getString("icon");
         byte[] image = downloadImage(iconCode);
         updateTableRow(CURR_RECORD_ID, cityName, tempMin, tempMax, description, date, image);
-        Log.d(TAG, "saveCurrWeatherDataInDb method worked");
+        Log.d(TAG, "saveCurrWeatherDataToDb method worked");
     }
 
-    public static void saveForecastDataInDb(JSONObject jsonObject) throws Exception{
+    public static void saveForecastDataToDb(JSONObject jsonObject) throws Exception{
         final int SINGLE_POSITION = 0;
         int currRecordId;
         JSONArray list = jsonObject.getJSONArray("list");
@@ -89,7 +89,7 @@ public class ReceivingDataTask {
             currRecordId = i + 2;
             updateTableRow(currRecordId, cityName, tempMin, tempMax, description, date, image);
         }
-        Log.d(TAG, "saveForecastDataInDb method worked");
+        Log.d(TAG, "saveForecastDataToDb method worked");
     }
 
     private static byte[] downloadImage(String icon){
@@ -132,7 +132,7 @@ public class ReceivingDataTask {
         }
     }
 
-    public static String getStringFromUrl(URL url) throws IOException {
+    public static String getStrFromUrl(URL url) throws IOException {
         HttpURLConnection urlConnection;
         BufferedReader reader;
         InputStream inputStream;

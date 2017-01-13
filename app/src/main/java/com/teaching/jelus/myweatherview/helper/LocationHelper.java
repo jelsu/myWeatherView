@@ -13,6 +13,8 @@ import android.support.v4.app.ActivityCompat;
 import static android.content.Context.LOCATION_SERVICE;
 
 public class LocationHelper {
+    private final int LOCATION_REFRESH_TIME = 1000;
+    private final int LOCATION_REFRESH_DISTANCE = 5;
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
     private Location mLocation;
@@ -49,10 +51,10 @@ public class LocationHelper {
             mContext.startActivity(new Intent(
                     android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
         } else {
-            if (isGPSEnabled) {
-                chooseLocationUpdate(LocationManager.GPS_PROVIDER);
-            } else {
+            if (isNetworkEnabled) {
                 chooseLocationUpdate(LocationManager.NETWORK_PROVIDER);
+            } else {
+                chooseLocationUpdate(LocationManager.GPS_PROVIDER);
             }
         }
         latitude = mLocation.getLatitude();
@@ -98,10 +100,9 @@ public class LocationHelper {
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        mLocationManager.requestLocationUpdates(
-                provider,
-                0,
-                1000,
+        mLocationManager.requestLocationUpdates(provider,
+                LOCATION_REFRESH_TIME,
+                LOCATION_REFRESH_DISTANCE,
                 mLocationListener);
         mLocation = mLocationManager.getLastKnownLocation(provider);
     }
