@@ -5,11 +5,9 @@
     <string name="text_description">light snow</string>
     <string name="text_date">Updated a few days ago</string>
     <string name="text_forecast_temperature">0° / -10°</string>
-    <string name="nav_location">Change location</string>
     <string name="text_day_of_week">Today</string>
     <string name="check_location">Save this location to preferences</string>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_weather">Weather</string>
+    <string name="drawer_location">Change location</string>
+    <string name="drawer_weather">Weather</string>
 
 </resources>

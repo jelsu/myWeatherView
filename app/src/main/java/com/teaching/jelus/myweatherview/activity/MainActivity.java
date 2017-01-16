@@ -1,20 +1,27 @@
 package com.teaching.jelus.myweatherview.activity;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
-import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
+import com.mikepenz.materialdrawer.Drawer;
+import com.mikepenz.materialdrawer.DrawerBuilder;
+import com.mikepenz.materialdrawer.model.PrimaryDrawerItem;
+import com.mikepenz.materialdrawer.model.interfaces.IDrawerItem;
 import com.teaching.jelus.myweatherview.DataEvent;
 import com.teaching.jelus.myweatherview.MessageType;
 import com.teaching.jelus.myweatherview.MyApp;
@@ -22,7 +29,6 @@ import com.teaching.jelus.myweatherview.R;
 import com.teaching.jelus.myweatherview.Settings;
 import com.teaching.jelus.myweatherview.fragment.LocationFragment;
 import com.teaching.jelus.myweatherview.fragment.WeatherFragment;
-import com.teaching.jelus.myweatherview.helper.LocationHelper;
 import com.teaching.jelus.myweatherview.task.ReceivingDataTask;
 import com.teaching.jelus.myweatherview.util.Utils;
 
@@ -36,11 +42,10 @@ import java.util.concurrent.ExecutorService;
 
 import static com.teaching.jelus.myweatherview.MessageType.RECEIVE_DATA;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private MenuItem mItemUpdate;
-    private NavigationView mNavigationView;
+    private Drawer mNavigationDrawer;
     private ExecutorService mPool;
 
     @Override
@@ -48,23 +53,62 @@ public class MainActivity extends AppCompatActivity
         setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        toolbar.setTitle("");
-        setSupportActionBar(toolbar);
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+        }
+        getSupportActionBar().setTitle("");
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
-
-        mNavigationView = (NavigationView) findViewById(R.id.nav_view);
-        mNavigationView.setNavigationItemSelectedListener(this);
+        initializeNavigatioanDrawer(toolbar);
 
         replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
-        mNavigationView.getMenu().getItem(0).setChecked(true);
         mPool = MyApp.getPool();
         receiveData();
+    }
+
+    private void initializeNavigatioanDrawer(Toolbar toolbar) {
+        mNavigationDrawer = new DrawerBuilder(this)
+                .withRootView(R.id.drawer_container)
+                .withToolbar(toolbar)
+                .withDisplayBelowStatusBar(false)
+                .withTranslucentStatusBar(false)
+                .withActionBarDrawerToggleAnimated(true)
+                .addDrawerItems(
+                        new PrimaryDrawerItem()
+                                .withName(R.string.drawer_weather)
+                                .withIcon(R.drawable.ic_wb_sunny_black_24dp)
+                                .withIdentifier(0),
+                        new PrimaryDrawerItem()
+                                .withName(R.string.drawer_location)
+                                .withIcon(R.drawable.ic_edit_location_black_24dp)
+                                .withIdentifier(1)
+                )
+                .withOnDrawerItemClickListener(new Drawer.OnDrawerItemClickListener() {
+                    @Override
+                    public boolean onItemClick(View view, int position, IDrawerItem drawerItem) {
+                        int identifier = (int) drawerItem.getIdentifier();
+                        switch (identifier) {
+                            case 0:
+                                if (!isFragmentAdded(WeatherFragment.TAG)) {
+                                    replaceFragment(new WeatherFragment(),
+                                            WeatherFragment.TAG, false);
+                                    backToWeatherFragment();
+                                }
+                                break;
+                            case 1:
+                                if (!isFragmentAdded(LocationFragment.TAG)) {
+                                    replaceFragment(new LocationFragment(),
+                                            LocationFragment.TAG, true);
+                                }
+                                break;
+                        }
+                        updateItemMenuVisible();
+                        return false;
+                    }
+                })
+                .withSelectedItem(0)
+                .build();
     }
 
     @Override
@@ -92,11 +136,10 @@ public class MainActivity extends AppCompatActivity
     public void onBackPressed() {
         if (isFragmentAdded(LocationFragment.TAG)) {
             backToWeatherFragment();
-            mNavigationView.getMenu().getItem(0).setChecked(true);
+            mNavigationDrawer.setSelection(0, false);
         }
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
+        if (mNavigationDrawer != null && mNavigationDrawer.isDrawerOpen()) {
+            mNavigationDrawer.closeDrawer();
         } else {
             super.onBackPressed();
         }
@@ -106,7 +149,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch (id){
+        switch (id) {
             case R.id.menu_item_update:
                 EventBus.getDefault().post(new DataEvent(MessageType.ALL_DATA_UPDATE, null));
                 return true;
@@ -115,32 +158,9 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        switch (id) {
-            case R.id.nav_weather:
-                if (!isFragmentAdded(WeatherFragment.TAG)) {
-                    replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
-                    backToWeatherFragment();
-                }
-                break;
-            case R.id.nav_location:
-                if (!isFragmentAdded(LocationFragment.TAG)) {
-                    replaceFragment(new LocationFragment(), LocationFragment.TAG, true);
-                }
-                break;
-        }
-        updateItemMenuVisible();
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
-
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(DataEvent data) {
-        switch (data.getType()){
+        switch (data.getType()) {
             case RECEIVE_DATA:
                 Toast.makeText(getApplicationContext(),
                         data.getMessage(),
@@ -148,7 +168,7 @@ public class MainActivity extends AppCompatActivity
                 break;
             case ALL_DATA_UPDATE:
                 replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
-                mNavigationView.getMenu().getItem(0).setChecked(true);
+                mNavigationDrawer.setSelection(0, false);
                 updateItemMenuVisible();
                 receiveData();
                 break;
@@ -157,19 +177,13 @@ public class MainActivity extends AppCompatActivity
 
     private void receiveData() {
         if (Utils.isConnected(getApplicationContext())) {
+            final Location location  = getCurrentLocation();
             mPool.submit(new Runnable() {
                 @Override
                 public void run() {
-                    LocationHelper locationHelper = MyApp.getLocationHelper();
                     try {
-                        locationHelper.start();
-                        URL currWeatherUrl = ReceivingDataTask.getUrl("weather",
-                                locationHelper.getLatitude(),
-                                locationHelper.getLongitude());
-                        URL forecastUrl = ReceivingDataTask.getUrl("forecast/daily",
-                                locationHelper.getLatitude(),
-                                locationHelper.getLongitude());
-                        locationHelper.stop();
+                        URL currWeatherUrl = ReceivingDataTask.getUrl("weather", location);
+                        URL forecastUrl = ReceivingDataTask.getUrl("forecast/daily", location);
 
                         Settings settings = MyApp.getSettings();
                         settings.removeCityNameValue();
@@ -197,7 +211,6 @@ public class MainActivity extends AppCompatActivity
                         e.printStackTrace();
                         EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
                                 "Receiving data error"));
-                        locationHelper.stop();
                     }
                 }
             });
@@ -206,6 +219,49 @@ public class MainActivity extends AppCompatActivity
                     "No internet connection", Toast.LENGTH_SHORT).show();
         }
         Log.d(TAG, "receiveData method completed");
+    }
+
+    private Location getCurrentLocation() {
+        final int LOCATION_REFRESH_TIME = 1000;
+        final int LOCATION_REFRESH_DISTANCE = 5;
+        LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
+        LocationListener locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+            }
+        };
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return null;
+        }
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                LOCATION_REFRESH_TIME,
+                LOCATION_REFRESH_DISTANCE,
+                locationListener);
+        return locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
     }
 
     private void replaceFragment(Fragment fragment, String tag, boolean addToBackStack){
@@ -240,7 +296,6 @@ public class MainActivity extends AppCompatActivity
         } else if (isFragmentAdded(LocationFragment.TAG)) {
             mItemUpdate.setVisible(false);
         }
-        Log.d(TAG, "updateItemMenuVisible");
     }
 
     private boolean isFragmentAdded(String tag) {

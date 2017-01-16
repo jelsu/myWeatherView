@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.util.Log;
 
 import com.teaching.jelus.myweatherview.MyApp;
@@ -28,7 +29,7 @@ import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.ID_COLUMN;
 public class ReceivingDataTask {
     private static final String TAG = ReceivingDataTask.class.getSimpleName();
 
-    public static URL getUrl(String requestType, double latitude, double longitude) throws Exception {
+    public static URL getUrl(String requestType, Location location) throws Exception {
         Settings settings = MyApp.getSettings();
         final String BEGINNING_URL = "http://api.openweathermap.org/data/2.5/";
         final String APP_ID = "98fb5e0dcef9e5de3219365edf223805";
@@ -38,7 +39,7 @@ public class ReceivingDataTask {
         } else if (settings.isContainPreferCityName()) {
             compositeUrl.append("?q=" + settings.getPreferCityNameValue());
         } else {
-            String coordinateStr = "?lat=" + latitude + "&lon=" + longitude;
+            String coordinateStr = "?lat=" + location.getLatitude() + "&lon=" + location.getLongitude();
             compositeUrl.append(coordinateStr);
         }
         compositeUrl.append("&appid=" + APP_ID);

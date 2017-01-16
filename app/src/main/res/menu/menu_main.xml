@@ -6,7 +6,7 @@
 
         <item
             android:id="@+id/menu_item_update"
-            android:icon="@drawable/ic_update"
+            android:icon="@drawable/ic_update_white_24dp"
             android:visible="true"
             app:showAsAction="always"
             android:title=""/>

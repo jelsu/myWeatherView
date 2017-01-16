@@ -1,4 +1,0 @@
-<resources>
-    <item name="ic_menu_location" type="drawable">@android:drawable/ic_menu_mylocation</item>
-    <item name="ic_menu_weather" type="drawable">@android:drawable/ic_menu_view</item>
-</resources>
