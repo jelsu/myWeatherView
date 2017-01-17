@@ -165,12 +165,13 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(),
                         data.getMessage(),
                         Toast.LENGTH_LONG).show();
+                mItemUpdate.setVisible(true);
                 break;
             case ALL_DATA_UPDATE:
                 replaceFragment(new WeatherFragment(), WeatherFragment.TAG, false);
                 mNavigationDrawer.setSelection(0, false);
-                updateItemMenuVisible();
                 receiveData();
+                mItemUpdate.setVisible(false);
                 break;
         }
     }
@@ -273,6 +274,9 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.replace(R.id.fragment_container, fragment, tag);
         fragmentTransaction.commit();
         fragmentManager.executePendingTransactions();
+        if (mItemUpdate != null) {
+            updateItemMenuVisible();
+        }
     }
 
     private void backToWeatherFragment(){
