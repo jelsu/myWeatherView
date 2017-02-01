@@ -6,10 +6,12 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -40,13 +42,16 @@ import org.json.JSONObject;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
 
+import static com.teaching.jelus.myweatherview.MessageType.ALL_DATA_UPDATE;
 import static com.teaching.jelus.myweatherview.MessageType.RECEIVE_DATA;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int LOCATION_PERMS_REQUEST_CODE = 1;
     private MenuItem mItemUpdate;
     private Drawer mNavigationDrawer;
     private ExecutorService mPool;
+    private Location mLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -151,10 +156,29 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
         switch (id) {
             case R.id.menu_item_update:
-                EventBus.getDefault().post(new DataEvent(MessageType.ALL_DATA_UPDATE, null));
+                EventBus.getDefault().post(new DataEvent(ALL_DATA_UPDATE, null));
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case LOCATION_PERMS_REQUEST_CODE:
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    updateLocation();
+                    Toast.makeText(getApplicationContext(),
+                            "Permission was granted",
+                            Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getApplicationContext(),
+                            "Permission denied",
+                            Toast.LENGTH_SHORT).show();
+                }
+                break;
         }
     }
 
@@ -164,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
             case RECEIVE_DATA:
                 Toast.makeText(getApplicationContext(),
                         data.getMessage(),
-                        Toast.LENGTH_LONG).show();
+                        Toast.LENGTH_SHORT).show();
                 mItemUpdate.setVisible(true);
                 break;
             case ALL_DATA_UPDATE:
@@ -178,13 +202,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void receiveData() {
         if (Utils.isConnected(getApplicationContext())) {
-            final Location location  = getCurrentLocation();
+            updateLocationWrapper();
             mPool.submit(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        URL currWeatherUrl = ReceivingDataTask.getUrl("weather", location);
-                        URL forecastUrl = ReceivingDataTask.getUrl("forecast/daily", location);
+                        URL currWeatherUrl = ReceivingDataTask.getUrl("weather", mLocation);
+                        URL forecastUrl = ReceivingDataTask.getUrl("forecast/daily", mLocation);
 
                         Settings settings = MyApp.getSettings();
                         settings.removeCityNameValue();
@@ -197,17 +221,8 @@ public class MainActivity extends AppCompatActivity {
                         JSONObject forecastJsonData = ReceivingDataTask
                                 .getJsonFromStr(forecastStr);
 
-                        if (ReceivingDataTask.isDataCorrect(currWeatherJsonData)
-                                && ReceivingDataTask.isDataCorrect(forecastJsonData)) {
-                            ReceivingDataTask.saveCurrWeatherDataToDb(currWeatherJsonData);
-                            ReceivingDataTask.saveForecastDataToDb(forecastJsonData);
-                            MyApp.getDatabaseHelper().showDataInLog();
-                            EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
-                                    "Data successfully updated"));
-                        } else {
-                            EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
-                                    "Receiving data error"));
-                        }
+                        ReceivingDataTask.checkAndSaveDataToDb(currWeatherJsonData,
+                                forecastJsonData);
                     } catch (Exception e) {
                         e.printStackTrace();
                         EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
@@ -222,7 +237,20 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "receiveData method completed");
     }
 
-    private Location getCurrentLocation() {
+    //TODO find correct solution
+    private void updateLocationWrapper() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        LOCATION_PERMS_REQUEST_CODE);
+        } else {
+            updateLocation();
+        }
+    }
+
+    @SuppressWarnings("MissingPermission")
+    private void updateLocation() {
         final int LOCATION_REFRESH_TIME = 1000;
         final int LOCATION_REFRESH_DISTANCE = 5;
         LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
@@ -243,26 +271,11 @@ public class MainActivity extends AppCompatActivity {
             public void onProviderDisabled(String provider) {
             }
         };
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return null;
-        }
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
                 LOCATION_REFRESH_TIME,
                 LOCATION_REFRESH_DISTANCE,
                 locationListener);
-        return locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        mLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
     }
 
     private void replaceFragment(Fragment fragment, String tag, boolean addToBackStack){

@@ -7,10 +7,12 @@ import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.util.Log;
 
+import com.teaching.jelus.myweatherview.DataEvent;
 import com.teaching.jelus.myweatherview.MyApp;
 import com.teaching.jelus.myweatherview.Settings;
 import com.teaching.jelus.myweatherview.helper.DatabaseHelper;
 
+import org.greenrobot.eventbus.EventBus;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,11 +25,27 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import static com.teaching.jelus.myweatherview.MessageType.RECEIVE_DATA;
 import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.CITY_COLUMN;
 import static com.teaching.jelus.myweatherview.helper.DatabaseHelper.ID_COLUMN;
 
 public class ReceivingDataTask {
     private static final String TAG = ReceivingDataTask.class.getSimpleName();
+
+    public static void checkAndSaveDataToDb(JSONObject currWeatherJsonData,
+                                            JSONObject forecastJsonData) throws JSONException {
+        if (isDataCorrect(currWeatherJsonData)
+                && isDataCorrect(forecastJsonData)) {
+            saveCurrWeatherDataToDb(currWeatherJsonData);
+            saveForecastDataToDb(forecastJsonData);
+            MyApp.getDatabaseHelper().showDataInLog();
+            EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
+                    "Data successfully updated"));
+        } else {
+            EventBus.getDefault().post(new DataEvent(RECEIVE_DATA,
+                    "Receiving data error"));
+        }
+    }
 
     public static URL getUrl(String requestType, Location location) throws Exception {
         Settings settings = MyApp.getSettings();
@@ -52,7 +70,7 @@ public class ReceivingDataTask {
         return new JSONObject(str);
     }
 
-    public static void saveCurrWeatherDataToDb(JSONObject jsonObject) throws Exception{
+    public static void saveCurrWeatherDataToDb(JSONObject jsonObject) throws JSONException {
         final int CURR_RECORD_ID = 1;
         final int SINGLE_POSITION = 0;
         String cityName = jsonObject.getString("name");
@@ -69,7 +87,7 @@ public class ReceivingDataTask {
         Log.d(TAG, "saveCurrWeatherDataToDb method worked");
     }
 
-    public static void saveForecastDataToDb(JSONObject jsonObject) throws Exception{
+    public static void saveForecastDataToDb(JSONObject jsonObject) throws JSONException {
         final int SINGLE_POSITION = 0;
         int currRecordId;
         JSONArray list = jsonObject.getJSONArray("list");
