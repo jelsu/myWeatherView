@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 
@@ -26,6 +27,7 @@ public class LocationFragment extends Fragment {
     public static final String TAG = LocationFragment.class.getSimpleName();
     private EditText mCityNameEdit;
     private CheckBox mLocateCheck;
+    private Button mCityConfirmBtn;
     private Settings mSettings;
 
     @Override
@@ -34,21 +36,21 @@ public class LocationFragment extends Fragment {
         View view =  inflater.inflate(R.layout.fragment_location, container, false);
         mCityNameEdit = (EditText) view.findViewById(R.id.edit_city_name);
         mLocateCheck = (CheckBox) view.findViewById(R.id.check_locate);
+        mCityConfirmBtn = (Button) view.findViewById(R.id.btn_city_confirm);
         mSettings = MyApp.getSettings();
         checkLocationWidgetEnable();
+        mCityConfirmBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                changeCityNameAndUpdateData();
+            }
+        });
         mCityNameEdit.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 if ((event.getAction() == KeyEvent.ACTION_DOWN) &&
                         (keyCode == KeyEvent.KEYCODE_ENTER)){
-                    String trimmedCityName = mCityNameEdit.getText().toString().trim();
-                    mCityNameEdit.setText(trimmedCityName);
-                    mCityNameEdit.setSelection(mCityNameEdit.getText().length());
-                    if (!trimmedCityName.equals("")){
-                        mSettings.setCityNameValue(trimmedCityName);
-                        EventBus.getDefault().post(new DataEvent(MessageType.ALL_DATA_UPDATE, null));
-                        hideKeyboard();
-                    }
+                    changeCityNameAndUpdateData();
                     return true;
                 }
                 return false;
@@ -69,6 +71,27 @@ public class LocationFragment extends Fragment {
             }
         });
         return view;
+    }
+
+    private void changeCityNameAndUpdateData() {
+        trimCityName();
+        if (!isCityNameNull()){
+            String cityName = mCityNameEdit.getText().toString();
+            mSettings.setCityNameValue(cityName);
+            EventBus.getDefault().post(new DataEvent(MessageType.ALL_DATA_UPDATE, null));
+            hideKeyboard();
+        }
+    }
+
+    private boolean isCityNameNull() {
+        String cityName = mCityNameEdit.getText().toString();
+        return cityName.equals("");
+    }
+
+    private void trimCityName() {
+        String trimmedCityName = mCityNameEdit.getText().toString().trim();
+        mCityNameEdit.setText(trimmedCityName);
+        mCityNameEdit.setSelection(mCityNameEdit.getText().length());
     }
 
     @Override
@@ -101,8 +124,10 @@ public class LocationFragment extends Fragment {
         if (mCityNameEdit.getText().toString().equals("")){
             mLocateCheck.setVisibility(View.GONE);
             mLocateCheck.setChecked(false);
+            mCityConfirmBtn.setVisibility(View.GONE);
         } else {
             mLocateCheck.setVisibility(View.VISIBLE);
+            mCityConfirmBtn.setVisibility(View.VISIBLE);
         }
     }
 

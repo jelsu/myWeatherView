@@ -13,8 +13,16 @@
         android:inputType="text"
         android:maxLength="24"
         android:gravity="center"
-        android:hint="Input your city name here"
+        android:hint="@string/text_hint_city_name"
         android:maxLines="1"/>
+
+    <Button
+        android:id="@+id/btn_city_confirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="invisible"
+        android:layout_gravity="center"
+        android:text="@string/btn_city_confirm"/>
 
     <CheckBox
         android:id="@+id/check_locate"

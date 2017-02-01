@@ -9,5 +9,7 @@
     <string name="check_location">Save this location to preferences</string>
     <string name="drawer_location">Change location</string>
     <string name="drawer_weather">Weather</string>
+    <string name="btn_city_confirm">Choose this city</string>
+    <string name="text_hint_city_name">Input your city name here</string>
 
 </resources>
